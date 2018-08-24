@@ -1,0 +1,27 @@
+{% if queue %}
+  <ul class="list-group" id="mainFilesList">
+  {% for item in queue %}
+    {% if queue[item]['status'] == 'error' %}
+      <li class="list-group-item list-group-item-danger">{{queue[item]['url']}} - {{queue[item]['error']}} <span class="right"> <a href="#" onClick="rerunQueue('{{queue[item]['id']}}')"><span class="fas fa-sync float-right" aria-hidden="true"></span></a> <a href="#" onClick="deleteQueue('{{queue[item]['id']}}')"><span class="fas fa-trash float-right" aria-hidden="true"></span></a></span> </li>
+    {% elif queue[item]['status'] == 'finished' %}
+      <li class="list-group-item list-group-item-info">{{queue[item]['filename']}} - Converting...</li>
+    {% elif queue[item]['status'] == 'completed' %}
+      {% if queue[item]['filename'] %}
+        <li class="list-group-item list-group-item-success">{{queue[item]['filename']}}  <a href="#" onClick="deleteQueue('{{queue[item]['id']}}')"><span class="fas fa-trash float-right" aria-hidden="true"></span></a></li>
+      {% else %}
+        <li class="list-group-item list-group-item-success">{{queue[item]['url']}}  <a href="#" onClick="deleteQueue('{{queue[item]['id']}}')"><span class="fas fa-trash float-right" aria-hidden="true"></span></a></li>
+      {% endif %}
+    {% elif queue[item]['status'] == 'downloading' %}
+      <li class="list-group-item list-group-item-info">{{queue[item]['filename']}} (<span id="db">{{queue[item]['dbytes']}}</span> / <span id="tb">{{queue[item]['tbytes']}}</span> @ <span id="sb">{{queue[item]['speed']}}</span>s) - <span id="pc">{{queue[item]['percent']}}</span></li>
+    {% elif queue[item]['status'] == 'queued' %}
+      <li class="list-group-item list-group-item-info">{{queue[item]['url']}} <a href="#" onClick="deleteQueue('{{queue[item]['id']}}')"><span class="fas fa-trash float-right" aria-hidden="true"></span></a></li>
+    {% endif %}
+  {% endfor %}
+  </ul>
+{% else %}
+<div class="card">
+  <div class="card-body">
+    No Files in Queue
+  </div>
+</div>
+{% endif %}
