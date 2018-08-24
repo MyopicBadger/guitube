@@ -44,7 +44,7 @@ def saveDownloadQueue():
 	try:
 		with open(savedDownloadQueueFile, "w") as savefile:
 			print("Saving: " + str(os.path.abspath(savedDownloadQueueFile)))
-			# print(json.dumps(downloadQueue, ensure_ascii=False), file=savefile);
+			print(json.dumps(downloadQueue, ensure_ascii=False), file=savefile);
 	except TypeError:
 		for url in downloadQueue.keys():
 			downloadQueue[url]["status"] == str(downloadQueue[url]["status"])
