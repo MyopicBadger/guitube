@@ -52,7 +52,7 @@ def checkAndSetConfig():
 		Config.set('Server','host','0.0.0.0')
 		Config.set('Server','port', '5002')
 		Config.set('Server','secret_key', str(os.urandom(24)))
-		Config.set('Server','debug_mode', 'True')
+		Config.set('Server','debug_mode', 'False')
 
 		Config.write(cfgfile)
 		cfgfile.close()
