@@ -239,13 +239,6 @@ def videoAddProper():
 	else:
 		return redirect("/youtube", code=302)
 
-
-#@app.route("/youtube/list")
-#def videoList1():
-#	global downloadQueue
-#	return render_template("filelist.html", queue=downloadQueue)
-
-
 @app.route("/youtube/kill")
 def shutdownAll():
 	global terminateFlag
