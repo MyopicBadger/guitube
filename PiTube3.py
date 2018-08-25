@@ -6,6 +6,8 @@ import shlex
 import subprocess
 import threading
 import time
+import configparser
+import io
 
 import youtube_dl
 from flask import Flask, flash, redirect, render_template, request, url_for
@@ -17,15 +19,53 @@ downloadQueue = {}
 currentDownloadPercent = 0
 currentDownloadUrl = ""
 youtubelocation = "/mnt/Raphael/youtube2/"
+dumbSaveFileName = "queue.temp"
+jsonSaveFileName = "queue.json"
+hostname = "0.0.0.0"
+portnumber = 5002
+debugmode = True
+app_secret_key = "notEvenVaguelySecret"
+
 savedDownloadQueueFile = os.path.join(
-	os.path.dirname(os.path.abspath(__file__)), "queue.json"
+	os.path.dirname(os.path.abspath(__file__)), jsonSaveFileName
 )
-dumbSaveFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "queue.temp")
+dumbSaveFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), dumbSaveFileName)
 idCounter = 0
 terminateFlag = 0
 lastFilename = ""
 download_thread = 0
+configfile_name = "config.ini"
 
+def checkAndSetConfig():
+	global youtubelocation, dumbSaveFileName, jsonSaveFileName, hostname, portnumber, debugmode, app_secret_key
+	if not os.path.isfile(configfile_name):
+	# Create the configuration file as it doesn't exist yet
+		cfgfile = open(configfile_name, 'w')
+
+		# Add content to the file
+		Config = configparser.ConfigParser()
+		Config.add_section('Downloader')
+		Config.set('Downloader', 'download_folder', '/mnt/Raphael/youtube2/')
+		Config.set('Downloader', 'download_queue', 'queue.json')
+		Config.set('Downloader', 'dumb_download_queue', 'queue.temp')
+		Config.add_section('Server')
+		Config.set('Server','host','0.0.0.0')
+		Config.set('Server','port', '5002')
+		Config.set('Server','secret_key', 'notEvenVaguelySecret')
+		Config.set('Server','debug_mode', 'True')
+
+		Config.write(cfgfile)
+		cfgfile.close()
+	else:
+		parser = configparser.ConfigParser()
+		parser.read(configfile_name)
+		youtubelocation = parser.get('Downloader', 'download_folder')
+		dumbSaveFileName = parser.get('Downloader', 'download_queue')
+		jsonSaveFileName = parser.get('Downloader', 'dumb_download_queue')
+		hostname = parser.get('Server', 'host')
+		portnumber = parser.get('Server', 'port')
+		debugmode = parser.get('Server', 'debug_mode')
+		app_secret_key = parser.get('Server', 'secret_key')
 
 def getDownloadQueue():
 	global downloadQueue
@@ -59,38 +99,6 @@ def dumbSave():
 @app.route("/")
 def rootRedirect():
 	return redirect(url_for("mainPageFunction"))
-
-
-@app.route("/listyoutube")
-def mainPageFunction():
-	filesonly = []
-	folders = []
-	filessplit = []
-	for fname in os.listdir(youtubelocation):
-		parts = fname.rsplit(".", 1)
-		if (
-			len(parts) > 1
-			and parts[1] not in "srt"
-			and parts[1] not in "db"
-			and parts[1] not in "bat"
-			and "fuse" not in parts[1]
-		):
-			if parts[1] in "m4a":
-				filesonly.append({"name": fname, "type": "audio"})
-			elif parts[1] in "srt":
-				filesonly.append({"name": fname, "type": "subtitle"})
-			else:
-				filesonly.append({"name": fname, "type": "video"})
-		if len(parts) < 2 and len(fname) > 1:
-			subfolderpath = os.path.join(youtubelocation, fname)
-			print("subfolderpath:" + subfolderpath)
-			filessplit = os.listdir(subfolderpath)
-			count = len(filessplit)
-			folders.append({"name": fname, "count": count})
-
-	return render_template(
-		"results.html", films=filesonly, series=folders, seriescontents=filessplit
-	)
 
 
 def executeCommand(command):
@@ -358,9 +366,11 @@ def doDownload():
 download_thread = threading.Thread(target=doDownload)
 
 if __name__ == "__main__":
+	checkAndSetConfig()
 	print("Working Directory: " + executeCommand("pwd"))
 	print("Youtube-Dl Version: " + executeCommand("youtube-dl --version"))
 	getDownloadQueue()
-	app.secret_key = "notEvenVaguelySecret"
-	app.debug = True
-	app.run(host="0.0.0.0", port=5002)
+	app.secret_key = app_secret_key
+	app.debug = debugmode
+	app.run(host=hostname, port=portnumber)
+

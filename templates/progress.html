@@ -85,7 +85,7 @@
 					Force Start</a>
 				<a class="btn btn-secondary" href="{{ url_for('removeFinished') }}"><span class="fas fa-trash" aria-hidden="true"></span>
 					Clear Completed</a>
-				<a class="btn btn-secondary" href="{{ url_for('shutdownAll') }}"><span class="fas fa-stop" aria-hidden="true"></span>
+				<a class="btn btn-secondary" href="{{ url_for('shutdownAll') }}"><span class="fas fa-power-off" aria-hidden="true"></span>
 					End Program</a>
 			</div>
 		</div>
@@ -202,6 +202,8 @@
 			{% endwith %}
 		});
 
+		var lastQueueLoad = ""
+
 		$(document).ready(function () {
 			var progresspump = setInterval(function () {
 				//console.log("tick")
@@ -213,9 +215,10 @@
 				/* query the completion percentage from the server */
 				$.get("/youtube/queue", function (data) {
 					//$("#mainQueue").html(data);
-					//if (!$("#mainQueue .list-group").is(data)) {
+					if (lastQueueLoad !== data) {
 						$("#mainQueue .list-group").replaceWith(data);
-					//}
+						lastQueueLoad = data;
+					}
 					var downloadedBytes = $('#db').text();
 					var totalBytes = $('#tb').text();
 					var percentBytes = Math.round((downloadedBytes / totalBytes) * 100);
