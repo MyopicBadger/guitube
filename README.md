@@ -1,6 +1,8 @@
 # guitube
 A simple web frontend for youtube-dl
 
+![alt text](https://github.com/MyopicBadger/guitube/raw/master/doc/example.png "Guitube in action")
+
 Formerly known (to me at least) as PiTube, because it started as a program I wrote to run on a RaspberryPi.
 
 ## Getting started
