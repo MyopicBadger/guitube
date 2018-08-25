@@ -63,8 +63,8 @@ def checkAndSetConfig():
 		dumbSaveFileName = parser.get('Downloader', 'download_queue')
 		jsonSaveFileName = parser.get('Downloader', 'dumb_download_queue')
 		hostname = parser.get('Server', 'host')
-		portnumber = parser.get('Server', 'port')
-		debugmode = parser.get('Server', 'debug_mode')
+		portnumber = parser.getint('Server', 'port')
+		debugmode = parser.getboolean('Server', 'debug_mode')
 		app_secret_key = parser.get('Server', 'secret_key')
 
 def getDownloadQueue():
