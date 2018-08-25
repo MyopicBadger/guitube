@@ -45,17 +45,18 @@ def checkAndSetConfig():
 		# Add content to the file
 		Config = configparser.ConfigParser()
 		Config.add_section('Downloader')
-		Config.set('Downloader', 'download_folder', '/mnt/Raphael/youtube2/')
+		Config.set('Downloader', 'download_folder', '/')
 		Config.set('Downloader', 'download_queue', 'queue.json')
 		Config.set('Downloader', 'dumb_download_queue', 'queue.temp')
 		Config.add_section('Server')
 		Config.set('Server','host','0.0.0.0')
 		Config.set('Server','port', '5002')
-		Config.set('Server','secret_key', 'notEvenVaguelySecret')
+		Config.set('Server','secret_key', str(os.urandom(24)))
 		Config.set('Server','debug_mode', 'True')
 
 		Config.write(cfgfile)
 		cfgfile.close()
+		checkAndSetConfig()
 	else:
 		parser = configparser.ConfigParser()
 		parser.read(configfile_name)
