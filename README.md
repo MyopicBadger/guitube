@@ -44,7 +44,7 @@ Server settings are configuration passed through to the built in Flask server
 
 `port` - The port number that the server will be accessible using.
 
-`secret_key` - The secret key used to encrypt secure session cookies. It doesn't really matter what this is, as long as it's secret.
+`secret_key` - The secret key used to encrypt secure session cookies. It doesn't really matter what this is, as long as it's secret. This is automatically generated the first time you run the program.
 
 `debug_mode` - Controls whether the Flask server runs in debug_mode (see the [documentation](http://werkzeug.pocoo.org/docs/0.14/debug/) for details). You should definitely set this to False in production environments
 
