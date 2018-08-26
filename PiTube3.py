@@ -8,6 +8,9 @@ import threading
 import time
 import configparser
 import io
+#import secrets # upgrade to this
+import random
+import string
 
 import youtube_dl
 from flask import Flask, flash, redirect, render_template, request, url_for
@@ -42,6 +45,10 @@ def checkAndSetConfig():
 	# Create the configuration file as it doesn't exist yet
 		cfgfile = open(configfile_name, 'w')
 
+		# Generate a suitable secret key (so 32 random characters)
+		alphabet = string.ascii_letters + string.digits
+		password = ''.join(random.choice(alphabet) for i in range(32))
+
 		# Add content to the file
 		Config = configparser.ConfigParser()
 		Config.add_section('Downloader')
@@ -51,7 +58,7 @@ def checkAndSetConfig():
 		Config.add_section('Server')
 		Config.set('Server','host','0.0.0.0')
 		Config.set('Server','port', '5002')
-		Config.set('Server','secret_key', str(os.urandom(24)))
+		Config.set('Server','secret_key', password)
 		Config.set('Server','debug_mode', 'False')
 
 		Config.write(cfgfile)
