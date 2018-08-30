@@ -1,20 +1,24 @@
 #!/usr/bin/env python
+import configparser
 import copy
+import io
 import json
 import os
+# import secrets # upgrade to this
+import random
 import shlex
+import string
 import subprocess
 import threading
 import time
-import configparser
-import io
-#import secrets # upgrade to this
-import random
-import string
+import re
 
 import youtube_dl
 from flask import Flask, flash, redirect, render_template, request, url_for
 from youtube_dl import DownloadError
+
+from imgur_downloader import \
+	ImgurDownloader  # https://github.com/jtara1/imgur_downloader
 
 app = Flask(__name__)
 
@@ -32,7 +36,9 @@ app_secret_key = "notEvenVaguelySecret"
 savedDownloadQueueFile = os.path.join(
 	os.path.dirname(os.path.abspath(__file__)), jsonSaveFileName
 )
-dumbSaveFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), dumbSaveFileName)
+dumbSaveFile = os.path.join(
+	os.path.dirname(os.path.abspath(__file__)), dumbSaveFileName
+)
 idCounter = 0
 terminateFlag = 0
 lastFilename = ""
@@ -42,24 +48,24 @@ configfile_name = "config.ini"
 def checkAndSetConfig():
 	global youtubelocation, dumbSaveFileName, jsonSaveFileName, hostname, portnumber, debugmode, app_secret_key
 	if not os.path.isfile(configfile_name):
-	# Create the configuration file as it doesn't exist yet
-		cfgfile = open(configfile_name, 'w')
+		# Create the configuration file as it doesn't exist yet
+		cfgfile = open(configfile_name, "w")
 
 		# Generate a suitable secret key (so 32 random characters)
 		alphabet = string.ascii_letters + string.digits
-		password = ''.join(random.choice(alphabet) for i in range(32))
+		password = "".join(random.choice(alphabet) for i in range(32))
 
 		# Add content to the file
 		Config = configparser.ConfigParser()
-		Config.add_section('Downloader')
-		Config.set('Downloader', 'download_folder', '/')
-		Config.set('Downloader', 'download_queue', 'queue.json')
-		Config.set('Downloader', 'dumb_download_queue', 'queue.temp')
-		Config.add_section('Server')
-		Config.set('Server','host','0.0.0.0')
-		Config.set('Server','port', '5002')
-		Config.set('Server','secret_key', password)
-		Config.set('Server','debug_mode', 'False')
+		Config.add_section("Downloader")
+		Config.set("Downloader", "download_folder", "/")
+		Config.set("Downloader", "download_queue", "queue.json")
+		Config.set("Downloader", "dumb_download_queue", "queue.temp")
+		Config.add_section("Server")
+		Config.set("Server", "host", "0.0.0.0")
+		Config.set("Server", "port", "5002")
+		Config.set("Server", "secret_key", password)
+		Config.set("Server", "debug_mode", "False")
 
 		Config.write(cfgfile)
 		cfgfile.close()
@@ -67,13 +73,14 @@ def checkAndSetConfig():
 	else:
 		parser = configparser.ConfigParser()
 		parser.read(configfile_name)
-		youtubelocation = parser.get('Downloader', 'download_folder')
-		dumbSaveFileName = parser.get('Downloader', 'download_queue')
-		jsonSaveFileName = parser.get('Downloader', 'dumb_download_queue')
-		hostname = parser.get('Server', 'host')
-		portnumber = parser.getint('Server', 'port')
-		debugmode = parser.getboolean('Server', 'debug_mode')
-		app_secret_key = parser.get('Server', 'secret_key')
+		youtubelocation = parser.get("Downloader", "download_folder")
+		dumbSaveFileName = parser.get("Downloader", "download_queue")
+		jsonSaveFileName = parser.get("Downloader", "dumb_download_queue")
+		hostname = parser.get("Server", "host")
+		portnumber = parser.getint("Server", "port")
+		debugmode = parser.getboolean("Server", "debug_mode")
+		app_secret_key = parser.get("Server", "secret_key")
+
 
 def getDownloadQueue():
 	global downloadQueue
@@ -237,7 +244,12 @@ def videoAddProper():
 		for subURL in url.split():
 			idCounter = idCounter + 1
 			downloadQueue[subURL] = dict(
-				[("status", "queued"), ("url", subURL), ("id", "id_" + str(idCounter))]
+				[
+					("status", "queued"),
+					("url", subURL),
+					("id", "id_" + str(idCounter)),
+					("mode", "video"),
+				]
 			)
 			flash("Added " + getName(downloadQueue[subURL]), "info")
 		saveDownloadQueue()
@@ -346,9 +358,24 @@ def doDownload():
 		print("proceeding to " + currentDownloadUrl)
 		try:
 			os.chdir(youtubelocation)
-			with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-				ydl.download([nextUrl["url"]])
-			downloadQueue[nextUrl["url"]]["status"] = "completed"
+			match = re.match(
+				"(https?)://(www\.)?(i\.|m\.)?imgur\.com/(a/|gallery/|r/)?/?(\w*)/?(\w*)(#[0-9]+)?(.\w*)?",  # NOQA
+				currentDownloadUrl,
+			)
+			if match:
+				nextUrl["mode"] = "imgur"
+				print("Matched Regex")
+				downloader = ImgurDownloader(currentDownloadUrl, youtubelocation)
+				print("Downloader created...")
+				print("This albums has {} images".format(downloader.num_images()))
+				resultsTuple = downloader.save_images()
+				print("Saved!")
+				nextUrl["status"] = "completed"
+			if not match:
+				nextUrl["mode"] = "youtube"
+				with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+					ydl.download([nextUrl["url"]])
+				downloadQueue[nextUrl["url"]]["status"] = "completed"
 			os.chdir(os.path.expanduser("~"))
 			loopBreaker = 10
 		except Exception as e:
@@ -367,10 +394,11 @@ def doDownload():
 
 
 def shutdown_server():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
+	func = request.environ.get("werkzeug.server.shutdown")
+	if func is None:
+		raise RuntimeError("Not running with the Werkzeug Server")
+	func()
+
 
 download_thread = threading.Thread(target=doDownload)
 
@@ -382,4 +410,3 @@ if __name__ == "__main__":
 	app.secret_key = app_secret_key
 	app.debug = debugmode
 	app.run(host=hostname, port=portnumber)
-

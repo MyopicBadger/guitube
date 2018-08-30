@@ -2,3 +2,4 @@ queue.json
 queue.temp
 config.ini
 nohup.out
+__pycache__
