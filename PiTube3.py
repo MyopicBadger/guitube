@@ -255,6 +255,8 @@ def shutdownAll():
 	terminateFlag += 1
 	saveDownloadQueue()
 	flash("Downloading will cease after current download finishes", "warn")
+	download_thread._stop()
+	shutdown_server()
 	return redirect("/youtube", code=302)
 
 
@@ -363,6 +365,12 @@ def doDownload():
 	else:
 		print("Nothing to do - Finishing Process")
 
+
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
 
 download_thread = threading.Thread(target=doDownload)
 
