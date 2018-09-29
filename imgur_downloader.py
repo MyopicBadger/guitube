@@ -10,21 +10,21 @@ MIT License
 Copyright Alex Gisby <alex@solution10.com>
 """
 
-from collections import Counter
-from urllib.error import HTTPError
-from urllib.parse import urlparse
 import json
 import logging
 import math
 import os
 import re
+#import urllib
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-#import urllib
-import unicodedata
-import click
+from collections import Counter
+from urllib.error import HTTPError
+from urllib.parse import urlparse
 
+import click
 
 __doc__ = """
 Quickly and easily download images from Imgur.
@@ -289,7 +289,9 @@ class ImgurDownloader:
         downloaded = skipped = 0
 
         if not os.path.exists(dir_save):
+            print("Attemting folder create")
             os.makedirs(dir_save)
+            print("Folder create complete!")
 
         final_filenames = []
         # And finally loop through and save the images:
@@ -310,9 +312,19 @@ class ImgurDownloader:
             )
 
             filename = prefix + key + ext
+            #filename = prefix + ext
             if len(self.imageIDs) == 1:
                 filename = self.album_title + ext
             path = os.path.join(dir_save, filename)
+
+            '''print("self.album_title="+str(self.album_title))
+            print("prefix="+str(prefix))
+            print("key="+str(key))
+            print("ext="+str(ext))
+            print("Dirname="+str(dir_save))
+            print("Filename="+str(filename))
+            print("Path="+str(path))'''
+            #os.makedirs(dir_save)
 
             # Run the callbacks:
             for fn in self.image_callbacks:

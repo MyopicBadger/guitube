@@ -32,6 +32,7 @@ hostname = "0.0.0.0"
 portnumber = 5002
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
+imgurAlbumSize = 0
 
 savedDownloadQueueFile = os.path.join(
 	os.path.dirname(os.path.abspath(__file__)), jsonSaveFileName
@@ -337,6 +338,20 @@ def getAllErrors():
 			return False
 	return True
 
+def imgurOnDownloadHook(index, httpUrl, filepath):
+	global currentDownloadPercent
+	print(str(downloadQueue))
+	print("Download Hook Fired for "+str(index))
+	currentDownloadPercent = (int(index) * 100) / int(imgurAlbumSize)
+	downloadQueue[currentDownloadUrl]["percent"] = currentDownloadPercent
+	downloadQueue[currentDownloadUrl]["filename"] = filepath
+	downloadQueue[currentDownloadUrl]["tbytes"] = imgurAlbumSize
+	downloadQueue[currentDownloadUrl]["dbytes"] = index
+	downloadQueue[currentDownloadUrl]["time"] = "?"
+	downloadQueue[currentDownloadUrl]["speed"] = currentDownloadPercent
+	downloadQueue[currentDownloadUrl]["canon"] = currentDownloadUrl
+	downloadQueue[currentDownloadUrl]["status"] = "?"
+
 
 loopBreaker = 10
 
@@ -346,6 +361,7 @@ def doDownload():
 	global currentDownloadUrl
 	global loopBreaker
 	global terminateFlag
+	global imgurAlbumSize
 	ydl_opts = {
 		"logger": MyLogger(),
 		"progress_hooks": [my_hook],
@@ -363,14 +379,20 @@ def doDownload():
 				currentDownloadUrl,
 			)
 			if match:
-				nextUrl["mode"] = "imgur"
+				downloadQueue[currentDownloadUrl]["status"] = "downloading"
+				downloadQueue[currentDownloadUrl]["mode"] = "imgur"
 				print("Matched Regex")
 				downloader = ImgurDownloader(currentDownloadUrl, youtubelocation)
 				print("Downloader created...")
 				print("This albums has {} images".format(downloader.num_images()))
+				imgurAlbumSize = downloader.num_images()
+				downloader.on_image_download(imgurOnDownloadHook)
+
 				resultsTuple = downloader.save_images()
+				
 				print("Saved!")
-				nextUrl["status"] = "completed"
+				print(resultsTuple)
+				downloadQueue[currentDownloadUrl]["status"] = "completed"
 			if not match:
 				nextUrl["mode"] = "youtube"
 				with youtube_dl.YoutubeDL(ydl_opts) as ydl:
