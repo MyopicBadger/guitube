@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href='/static/style.css' />
+    <title>Youtube-Dl Progress</title>
+    <!-- Bootstrap bootstrap-4.1.3-dist -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz"
+        crossorigin="anonymous">
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/toastr.min.js"></script>
+    <link href="/static/css/toastr.min.css" rel="stylesheet" />
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+	  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+	  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+	<![endif]-->
+</head>
+
+<body>
+    <br />
+
+    <div class="container theme-showcase" role="main" id="mainpage">
+
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="Enter a URL" aria-label="Enter a URL" aria-describedby="button-addon2"
+                v-model="inputurl">
+            <div class="input-group-append">
+                <button class="btn btn-secondary" type="button" id="button-addon2" v-on:click="addURL"><span class="fas fa-download"
+                        aria-hidden="true"></span> Download</button>
+            </div>
+        </div>
+
+
+        <div class="card mb-3">
+            <div class="progress">
+                <div id="progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                    aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" v-bind:style="progressStyle"></div>
+            </div>
+        </div>
+        <div class="card mb-3" id="mainQueue" v-if="downloadQueue">
+            <ul class="list-group">
+                <template v-for="item in downloadQueue">
+                    <!-- ERROR -->
+                    <li class="list-group-item list-group-item-danger" v-if="item.status == 'error'">[[item.url]]
+                        ([[item.filename]])</li>
+                    <!-- FINISHED -->
+                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'finished'">[[item.filename]] (FINISHED)
+                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span class="fas fa-trash"
+                                aria-hidden="true"></span></a></li>
+                    <!-- COMPLETED -->
+                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">[[item.filename]]  (COMPLETED)
+                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span class="fas fa-trash"
+                                aria-hidden="true"></span></a></li>
+                    <!-- DOWNLOADING -->
+                    <li class="list-group-item list-group-item-info" v-else-if="item.status == 'downloading'">[[item.filename]]
+                        (<span id="db">[[formatBytes(item.dbytes)]]</span>
+                        / <span id="tb">[[formatBytes(item.tbytes)]]</span> @ <span id="sb">[[formatBytes(item.speed)]]</span>s)
+                        - <span id="pc">[[formatPercent(item.percent)]]</span></li>
+                    <!-- QUEUED -->
+                    <li class="list-group-item list-group-item-info" v-else-if="item.status == 'queued'">[[item.url]]
+                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span class="fas fa-trash"
+                                aria-hidden="true"></span></a></li>
+                    <!-- OTHER -->
+                    <li class="list-group-item list-group-item-danger" v-else>[[item.url]]
+                        ([[item.filename]]) - RENDER ERROR</li>
+                </template>
+            </ul>
+
+        </div>
+        <div class="card mb-3" v-else>
+            <div class="card-body">
+                No Files in Queue
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <a class="btn btn-secondary" v-on:click='refresh' href="#"><span class="fas fa-sync" aria-hidden="true"></span>
+                    Refresh</a>
+                <a class="btn btn-secondary" v-on:click='save' href="#"><span class="fas fa-save" aria-hidden="true"></span>
+                    Force Save</a>
+                <a class="btn btn-secondary" v-on:click='start' href="#"><span class="fas fa-play" aria-hidden="true"></span>
+                    Force Start</a>
+                <a class="btn btn-secondary" v-on:click='clearcompleted' href="#"><span class="fas fa-trash"
+                        aria-hidden="true"></span>
+                    Clear Completed</a>
+                <a class="btn btn-secondary" v-on:click='shutdown' href="#"><span class="fas fa-power-off" aria-hidden="true"></span>
+                    End Program</a>
+            </div>
+        </div>
+    </div>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="static/js/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="static/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+    <script>
+
+        var vm = new Vue({
+            el: '#mainpage',
+            data: {
+                downloadQueue: {},
+                inputurl: "",
+                added: [],
+                progressStyle: { width: '0%' },
+            },
+            methods: {
+                refresh: function (event) {
+                    $.get("{{ url_for('videoJSONQueue') }}", function (data) {
+                        vm.downloadQueue = data
+                        var length = 0
+                        var runningPercent = 0
+                        for (item in data) {
+                            if (data[item].percent) {
+                                length++;
+                                runningPercent += data[item].percent;
+                            }
+                        }
+                        var calcPercent = Math.round((runningPercent / length))  + "%";
+                        vm.progressStyle.width = calcPercent;
+                    });
+                },
+                save: function (event) {
+                    $.get("{{ url_for('forceSave') }}", function (data) {
+                        console.log(data)
+                    });
+                },
+                start: function (event) {
+                    $.get("{{ url_for('forceStart') }}", function (data) {
+                        console.log(data)
+                    });
+                },
+                clearcompleted: function (event) {
+                    $.get("{{ url_for('removeFinished') }}", function (data) {
+                        console.log(data)
+                    });
+                },
+                shutdown: function (event) {
+                    $.get("{{ url_for('shutdownAll') }}", function (data) {
+                        console.log(data)
+                    });
+                },
+                addURL: function (event) {
+                    vm.added.push(vm.inputurl.split(" "))
+                    $.post("{{ url_for('videoAddProper') }}", { videourl: vm.inputurl }, function (data) {
+                        console.log(data)
+                        vm.added = []
+                    });
+                },
+                deleteQueue: function (id) {
+                    $.get("/youtube/remove/" + id, function (data) {
+                        if (data == "OK") {
+                            vm.refresh()
+                        }
+                    });
+                },
+                rerunQueue: function (id) {
+                    $.get("/youtube/queue/" + id, function (data) {
+                        if (data == "OK") {
+                            vm.refresh()
+                        }
+                    });
+                },
+                formatBytes: function (bytes, decimals) {
+                    if (bytes == 0) return '0 Byte';
+                    var k = 1000; // or 1024 for binary
+                    var dm = decimals + 1 || 3;
+                    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                    var i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+                },
+                formatPercent: function (percent) {
+                    return Math.floor(percent) + "%"
+                }
+            },
+            delimiters: ['[[', ']]'],
+            mounted: function () {
+                this.$nextTick(function () {
+                    var progresspump = setInterval(function () {
+                        vm.refresh()
+                    }, 1000);
+                });
+            }
+
+
+        })
+
+
+        /* REMOVED IN FAVOUR OF VUE
+		function deleteQueue(item_id) {
+			var removeUrl = "/youtube/remove/" + item_id
+			$.get(removeUrl, function (data) {
+				if (data == "OK") {
+					$.get("/youtube/queue", function (data) {
+						$("#mainQueue .list-group").replaceWith(data);
+						var downloadedBytes = $('#db').text();
+						var totalBytes = $('#tb').text();
+						var percentBytes = Math.round((downloadedBytes / totalBytes) * 100);
+						if (isNaN(percentBytes)) {
+							percentBytes = 100;
+						}
+						var speedBytes = Math.round($('#sb').text());
+						$("#pc").html(percentBytes + '%');
+						$("#progress").css('width', percentBytes + '%');
+						$("#progress").html(percentBytes + '%');
+						document.title = 'Youtube-Dl ' + percentBytes + '%';
+						$('#db').html(formatBytes(downloadedBytes, 1));
+						$('#tb').html(formatBytes(totalBytes, 1));
+						$('#sb').html(formatBytes(speedBytes, 1));
+					});
+				}
+			});
+		}
+
+		function rerunQueue(item_id) {
+			var removeUrl = "/youtube/retry/" + item_id
+			$.get(removeUrl, function (data) {
+				if (data == "OK") {
+					$.get("/youtube/queue", function (data) {
+						$("#mainQueue .list-group").replaceWith(data);
+						var downloadedBytes = $('#db').text();
+						var totalBytes = $('#tb').text();
+						var percentBytes = Math.round((downloadedBytes / totalBytes) * 100);
+						if (isNaN(percentBytes)) {
+							percentBytes = 100;
+						}
+						var speedBytes = Math.round($('#sb').text());
+						$("#pc").html(percentBytes + '%');
+						$("#progress").css('width', percentBytes + '%');
+						$("#progress").html(percentBytes + '%');
+						document.title = 'Youtube-Dl ' + percentBytes + '%';
+						$('#db').html(formatBytes(downloadedBytes, 1));
+						$('#tb').html(formatBytes(totalBytes, 1));
+						$('#sb').html(formatBytes(speedBytes, 1));
+					});
+				}
+			});
+		}
+
+
+
+		function formatBytes(bytes, decimals) {
+			if (bytes == 0) return '0 Byte';
+			var k = 1000; // or 1024 for binary
+			var dm = decimals + 1 || 3;
+			var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+			var i = Math.floor(Math.log(bytes) / Math.log(k));
+			return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+		}
+
+		$(document).ready(function () {
+			{% with messages = get_flashed_messages(with_categories = true) %}
+			{% if messages %}
+
+			toastr.options = {
+				"closeButton": true,
+				"debug": false,
+				"newestOnTop": true,
+				"progressBar": true,
+				"positionClass": "toast-top-right",
+				"preventDuplicates": false,
+				"onclick": null,
+				"showDuration": "300",
+				"hideDuration": "1000",
+				"timeOut": "5000",
+				"extendedTimeOut": "1000",
+				"showEasing": "swing",
+				"hideEasing": "linear",
+				"showMethod": "fadeIn",
+				"hideMethod": "fadeOut"
+			}
+			console.log("executed a")
+			{% for category, message in messages %}
+			{% if category == 'error' %}
+			toastr.error("{{ message }}");
+			{% elif category == 'warn' %}
+			toastr.warning("{{ message }}");
+			{% elif category == 'info' %}
+			toastr.info("{{ message }}");
+			{% elif category == 'success' %}
+			toastr.success("{{ message }}");
+			{% endif %}
+			console.log("executed b")
+			{% endfor -%}
+			{% endif %}
+			{% endwith %}
+		});
+
+		var lastQueueLoad = ""
+
+		$(document).ready(function () {
+			var progresspump = setInterval(function () {
+				$.get("/youtube/queue", function (data) {
+					//$("#mainQueue").html(data);
+					if (lastQueueLoad !== data) {
+						$("#mainQueue .list-group").replaceWith(data);
+						lastQueueLoad = data;
+					}
+					var downloadedBytes = $('#db').text();
+					var totalBytes = $('#tb').text();
+					var percentBytes = Math.round((downloadedBytes / totalBytes) * 100);
+					if (isNaN(percentBytes)) {
+						percentBytes = 100;
+					}
+					var speedBytes = Math.round($('#sb').text());
+					$("#pc").html(percentBytes + '%');
+					$("#progress").css('width', percentBytes + '%');
+					$("#progress").html(percentBytes + '%');
+					var numitems = $("#mainFilesList li").length;
+					var numfinitems = $("#mainFilesList .list-group-item-success").length;
+					document.title = 'Youtube-Dl ' + percentBytes + '% (' + numfinitems + ' of ' + numitems + ' files)';
+					$('#db').html(formatBytes(downloadedBytes, 1));
+					$('#tb').html(formatBytes(totalBytes, 1));
+					$('#sb').html(formatBytes(speedBytes, 1));
+				})
+			}, 1000);
+		});
+        */
+    </script>
+</body>
+<html>

@@ -1,38 +1,46 @@
-#!/usr/bin/env python
+
 import configparser
 import copy
 import io
-import json
 import os
+#!/usr/bin/env python
 # import secrets # upgrade to this
 import random
+import re
 import shlex
 import string
 import subprocess
 import threading
 import time
-import re
 
 import youtube_dl
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import (Flask, flash, json, redirect, render_template, request,
+                   url_for, jsonify)
 from youtube_dl import DownloadError
 
 from imgur_downloader import \
-	ImgurDownloader  # https://github.com/jtara1/imgur_downloader
+    ImgurDownloader  # https://github.com/jtara1/imgur_downloader
 
 app = Flask(__name__)
 
 downloadQueue = {}
 currentDownloadPercent = 0
 currentDownloadUrl = ""
-youtubelocation = "/"
+imgurAlbumSize = 0
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# The defaults below will be overwritten by the values in the #
+# checkAndSetConfig() call, so don't go thinking changing     #
+# the values here will do anything useful                     #
+youtubelocation = "."
 dumbSaveFileName = "queue.temp"
 jsonSaveFileName = "queue.json"
 hostname = "0.0.0.0"
-portnumber = 5002
+portnumber = 5001
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
-imgurAlbumSize = 0
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 savedDownloadQueueFile = os.path.join(
 	os.path.dirname(os.path.abspath(__file__)), jsonSaveFileName
@@ -59,7 +67,7 @@ def checkAndSetConfig():
 		# Add content to the file
 		Config = configparser.ConfigParser()
 		Config.add_section("Downloader")
-		Config.set("Downloader", "download_folder", "/")
+		Config.set("Downloader", "download_folder", ".")
 		Config.set("Downloader", "download_queue", "queue.json")
 		Config.set("Downloader", "dumb_download_queue", "queue.temp")
 		Config.add_section("Server")
@@ -222,7 +230,7 @@ def forceStart():
 	loopBreaker = 10
 	terminateFlag = 0
 	fireDownloadThread()
-	return redirect("/youtube", code=302)
+	return "OK"
 
 
 def fireDownloadThread():
@@ -255,9 +263,9 @@ def videoAddProper():
 			flash("Added " + getName(downloadQueue[subURL]), "info")
 		saveDownloadQueue()
 		fireDownloadThread()
-		return redirect("/youtube", code=302)
+		return jsonify(downloadQueue)
 	else:
-		return redirect("/youtube", code=302)
+		return jsonify(downloadQueue)
 
 @app.route("/youtube/kill")
 def shutdownAll():
@@ -284,7 +292,7 @@ def removeFinished():
 	downloadQueue = newDownloadQueue
 	saveDownloadQueue()
 
-	return redirect("/youtube", code=302)
+	return "OK"
 
 
 @app.route("/youtube/save")
@@ -292,19 +300,24 @@ def forceSave():
 	global downloadQueue
 	saveDownloadQueue()
 	flash("Saved " + str(os.path.abspath(savedDownloadQueueFile)), "info")
-	return redirect("/youtube", code=302)
+	return "OK"
 
 
 @app.route("/youtube")
 def videoList():
 	global downloadQueue
-	return render_template("progress.html", queue=downloadQueue, added="NONE")
+	return render_template("vue.html")
 
 
-@app.route("/youtube/queue")
-def videoMainQueue():
+@app.route("/youtube/queue.json")
+def videoJSONQueue():
 	global downloadQueue
-	return render_template("mainqueue.html", queue=downloadQueue, added="NONE")
+	# Manually stringify the error object if there is one,
+	# because apparently jsonify can't do it automatically
+	for url in downloadQueue.keys():
+		if downloadQueue[url]["status"] == "error":
+			downloadQueue[url]["error"] = str(downloadQueue[url]["error"])
+	return jsonify(dict(downloadQueue))
 
 
 @app.route("/youtube/percent")
@@ -373,6 +386,7 @@ def doDownload():
 		currentDownloadUrl = nextUrl["url"]
 		print("proceeding to " + currentDownloadUrl)
 		try:
+			#there's a bug where this will error if your download folder is inside your application folder
 			os.chdir(youtubelocation)
 			match = re.match(
 				"(https?)://(www\.)?(i\.|m\.)?imgur\.com/(a/|gallery/|r/)?/?(\w*)/?(\w*)(#[0-9]+)?(.\w*)?",  # NOQA
@@ -398,12 +412,13 @@ def doDownload():
 				with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 					ydl.download([nextUrl["url"]])
 				downloadQueue[nextUrl["url"]]["status"] = "completed"
-			os.chdir(os.path.expanduser("~"))
+			#os.chdir(os.path.expanduser("~"))
+			os.chdir(os.path.dirname(os.path.realpath(__file__)))
 			loopBreaker = 10
 		except Exception as e:
 			nextUrl["status"] = "error"
 			nextUrl["error"] = e
-			os.chdir(os.path.expanduser("~"))
+			os.chdir(os.path.dirname(os.path.realpath(__file__)))
 			flash("Error " + str(e), "error")
 		nextUrl = getNextQueuedItem()
 		if nextUrl != "NONE" and loopBreaker > 0:
@@ -431,4 +446,5 @@ if __name__ == "__main__":
 	getDownloadQueue()
 	app.secret_key = app_secret_key
 	app.debug = debugmode
+	app.auto_reload = debugmode
 	app.run(host=hostname, port=portnumber)
