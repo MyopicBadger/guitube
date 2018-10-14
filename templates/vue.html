@@ -49,16 +49,28 @@
             <ul class="list-group">
                 <template v-for="item in downloadQueue">
                     <!-- ERROR -->
-                    <li class="list-group-item list-group-item-danger" v-if="item.status == 'error'">[[item.url]]
-                        ([[item.filename]])</li>
+                    <li class="list-group-item list-group-item-danger" v-if="item.status == 'error'">
+                        [[item.url]] ([[item.filename]])
+                        <span class="float-right">
+                            <a class="btn btn-secondary" href="#" v-on:click='rerunQueue(item.id)'>
+                                <span class="fas fa-sync" aria-hidden="true"></span>&nbsp;
+                            </a>
+                            <a class="btn btn-secondary" href="#" v-on:click='deleteQueue(item.id)'>
+                                <span class="fas fa-trash" aria-hidden="true"></span>
+                            </a>
+                        </span>
+                    </li>
                     <!-- FINISHED -->
-                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'finished'">[[item.filename]] (FINISHED)
-                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span class="fas fa-trash"
-                                aria-hidden="true"></span></a></li>
+                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'finished'">
+                        [[item.filename]] - Converting...
+                    </li>
                     <!-- COMPLETED -->
-                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">[[item.filename]]  (COMPLETED)
-                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span class="fas fa-trash"
-                                aria-hidden="true"></span></a></li>
+                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
+                        [[safeName(item.url)]] (COMPLETED)
+                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'>
+                            <span class="fas fa-trash" aria-hidden="true"></span>
+                        </a>
+                    </li>
                     <!-- DOWNLOADING -->
                     <li class="list-group-item list-group-item-info" v-else-if="item.status == 'downloading'">[[item.filename]]
                         (<span id="db">[[formatBytes(item.dbytes)]]</span>
@@ -113,6 +125,16 @@
                 progressStyle: { width: '0%' },
             },
             methods: {
+                safeName: function(url) {
+                    console.log("url1:" + url)
+                    if (vm.downloadQueue[url].filename){
+                        return vm.downloadQueue[url].filename
+                    } else if (vm.downloadQueue[url].canon){
+                        return vm.downloadQueue[url].canon
+                    } else {
+                        return vm.downloadQueue[url].url
+                    }
+                },
                 refresh: function (event) {
                     $.get("{{ url_for('videoJSONQueue') }}", function (data) {
                         vm.downloadQueue = data
@@ -123,8 +145,11 @@
                                 length++;
                                 runningPercent += data[item].percent;
                             }
+                            if (data[item].status == 'queued') {
+                                length++;
+                            }
                         }
-                        var calcPercent = Math.round((runningPercent / length))  + "%";
+                        var calcPercent = Math.round((runningPercent / length)) + "%";
                         vm.progressStyle.width = calcPercent;
                     });
                 },
@@ -154,6 +179,7 @@
                         console.log(data)
                         vm.added = []
                     });
+                    vm.inputurl = "";
                 },
                 deleteQueue: function (id) {
                     $.get("/youtube/remove/" + id, function (data) {
