@@ -37,8 +37,11 @@
                         aria-hidden="true"></span> Download</button>
             </div>
         </div>
-
-
+        <div class="card mb-3">
+            <video controls v-if="video" :src="video">
+                <p>Your browser doesn't support HTML5 video. </p>
+            </video>
+        </div>
         <div class="card mb-3">
             <div class="progress">
                 <div id="progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
@@ -66,10 +69,15 @@
                     </li>
                     <!-- COMPLETED -->
                     <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
-                        [[safeName(item.url)]] (COMPLETED)
-                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'>
-                            <span class="fas fa-trash" aria-hidden="true"></span>
-                        </a>
+                        [[safeName(item.url)]]
+                        <span class="float-right">
+                            <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)'>
+                                <span class="fas fa-play" aria-hidden="true"></span>&nbsp;
+                            </a>
+                            <a class="btn btn-secondary" href="#" v-on:click='deleteQueue(item.id)'>
+                                <span class="fas fa-trash" aria-hidden="true"></span>
+                            </a>
+                        </span>
                     </li>
                     <!-- DOWNLOADING -->
                     <li class="list-group-item list-group-item-info" v-else-if="item.status == 'downloading'">[[item.filename]]
@@ -123,13 +131,13 @@
                 inputurl: "",
                 added: [],
                 progressStyle: { width: '0%' },
+                video: ""
             },
             methods: {
-                safeName: function(url) {
-                    console.log("url1:" + url)
-                    if (vm.downloadQueue[url].filename){
+                safeName: function (url) {
+                    if (vm.downloadQueue[url].filename) {
                         return vm.downloadQueue[url].filename
-                    } else if (vm.downloadQueue[url].canon){
+                    } else if (vm.downloadQueue[url].canon) {
                         return vm.downloadQueue[url].canon
                     } else {
                         return vm.downloadQueue[url].url
@@ -195,6 +203,17 @@
                         }
                     });
                 },
+                playQueue: function (id) {
+                    for (item in vm.downloadQueue) {
+                        if (vm.downloadQueue[item].id == id) {
+                            vm.video = "/youtube/video/" + vm.downloadQueue[item].filename
+                            //$.get("/youtube/video/" + vm.downloadQueue[item].filename, function (data) {
+                             //   vm.video = data
+                            //});
+                        }
+                    }
+
+                },
                 formatBytes: function (bytes, decimals) {
                     if (bytes == 0) return '0 Byte';
                     var k = 1000; // or 1024 for binary
@@ -221,67 +240,6 @@
 
 
         /* REMOVED IN FAVOUR OF VUE
-		function deleteQueue(item_id) {
-			var removeUrl = "/youtube/remove/" + item_id
-			$.get(removeUrl, function (data) {
-				if (data == "OK") {
-					$.get("/youtube/queue", function (data) {
-						$("#mainQueue .list-group").replaceWith(data);
-						var downloadedBytes = $('#db').text();
-						var totalBytes = $('#tb').text();
-						var percentBytes = Math.round((downloadedBytes / totalBytes) * 100);
-						if (isNaN(percentBytes)) {
-							percentBytes = 100;
-						}
-						var speedBytes = Math.round($('#sb').text());
-						$("#pc").html(percentBytes + '%');
-						$("#progress").css('width', percentBytes + '%');
-						$("#progress").html(percentBytes + '%');
-						document.title = 'Youtube-Dl ' + percentBytes + '%';
-						$('#db').html(formatBytes(downloadedBytes, 1));
-						$('#tb').html(formatBytes(totalBytes, 1));
-						$('#sb').html(formatBytes(speedBytes, 1));
-					});
-				}
-			});
-		}
-
-		function rerunQueue(item_id) {
-			var removeUrl = "/youtube/retry/" + item_id
-			$.get(removeUrl, function (data) {
-				if (data == "OK") {
-					$.get("/youtube/queue", function (data) {
-						$("#mainQueue .list-group").replaceWith(data);
-						var downloadedBytes = $('#db').text();
-						var totalBytes = $('#tb').text();
-						var percentBytes = Math.round((downloadedBytes / totalBytes) * 100);
-						if (isNaN(percentBytes)) {
-							percentBytes = 100;
-						}
-						var speedBytes = Math.round($('#sb').text());
-						$("#pc").html(percentBytes + '%');
-						$("#progress").css('width', percentBytes + '%');
-						$("#progress").html(percentBytes + '%');
-						document.title = 'Youtube-Dl ' + percentBytes + '%';
-						$('#db').html(formatBytes(downloadedBytes, 1));
-						$('#tb').html(formatBytes(totalBytes, 1));
-						$('#sb').html(formatBytes(speedBytes, 1));
-					});
-				}
-			});
-		}
-
-
-
-		function formatBytes(bytes, decimals) {
-			if (bytes == 0) return '0 Byte';
-			var k = 1000; // or 1024 for binary
-			var dm = decimals + 1 || 3;
-			var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-			var i = Math.floor(Math.log(bytes) / Math.log(k));
-			return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-		}
-
 		$(document).ready(function () {
 			{% with messages = get_flashed_messages(with_categories = true) %}
 			{% if messages %}
@@ -318,36 +276,6 @@
 			{% endfor -%}
 			{% endif %}
 			{% endwith %}
-		});
-
-		var lastQueueLoad = ""
-
-		$(document).ready(function () {
-			var progresspump = setInterval(function () {
-				$.get("/youtube/queue", function (data) {
-					//$("#mainQueue").html(data);
-					if (lastQueueLoad !== data) {
-						$("#mainQueue .list-group").replaceWith(data);
-						lastQueueLoad = data;
-					}
-					var downloadedBytes = $('#db').text();
-					var totalBytes = $('#tb').text();
-					var percentBytes = Math.round((downloadedBytes / totalBytes) * 100);
-					if (isNaN(percentBytes)) {
-						percentBytes = 100;
-					}
-					var speedBytes = Math.round($('#sb').text());
-					$("#pc").html(percentBytes + '%');
-					$("#progress").css('width', percentBytes + '%');
-					$("#progress").html(percentBytes + '%');
-					var numitems = $("#mainFilesList li").length;
-					var numfinitems = $("#mainFilesList .list-group-item-success").length;
-					document.title = 'Youtube-Dl ' + percentBytes + '% (' + numfinitems + ' of ' + numitems + ' files)';
-					$('#db').html(formatBytes(downloadedBytes, 1));
-					$('#tb').html(formatBytes(totalBytes, 1));
-					$('#sb').html(formatBytes(speedBytes, 1));
-				})
-			}, 1000);
 		});
         */
     </script>

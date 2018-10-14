@@ -3,6 +3,7 @@ import configparser
 import copy
 import io
 import os
+
 #!/usr/bin/env python
 # import secrets # upgrade to this
 import random
@@ -14,12 +15,23 @@ import threading
 import time
 
 import youtube_dl
-from flask import (Flask, flash, json, redirect, render_template, request,
-                   url_for, jsonify)
+from flask import (
+	Flask,
+	flash,
+	json,
+	redirect,
+	render_template,
+	request,
+	url_for,
+	jsonify,
+	send_from_directory,
+	send_file
+)
 from youtube_dl import DownloadError
 
-from imgur_downloader import \
-    ImgurDownloader  # https://github.com/jtara1/imgur_downloader
+from imgur_downloader import (
+	ImgurDownloader
+)  # https://github.com/jtara1/imgur_downloader
 
 app = Flask(__name__)
 
@@ -30,8 +42,8 @@ imgurAlbumSize = 0
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # The defaults below will be overwritten by the values in the #
-# checkAndSetConfig() call, so don't go thinking changing     #
-# the values here will do anything useful                     #
+# checkAndSetConfig() call, so don't go thinking changing	 #
+# the values here will do anything useful					 #
 youtubelocation = "."
 dumbSaveFileName = "queue.temp"
 jsonSaveFileName = "queue.json"
@@ -40,7 +52,7 @@ portnumber = 5001
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 savedDownloadQueueFile = os.path.join(
 	os.path.dirname(os.path.abspath(__file__)), jsonSaveFileName
@@ -53,6 +65,7 @@ terminateFlag = 0
 lastFilename = ""
 download_thread = 0
 configfile_name = "config.ini"
+
 
 def checkAndSetConfig():
 	global youtubelocation, dumbSaveFileName, jsonSaveFileName, hostname, portnumber, debugmode, app_secret_key
@@ -200,7 +213,7 @@ def videoRemove(id_num):
 				downloadQueue[url]["status"] != "downloading"
 				or downloadQueue[url]["status"] != "finished"
 			):
-				flash("Removed " + getName(downloadQueue[url]), "info")
+				#flash("Removed " + getName(downloadQueue[url]), "info")
 				del downloadQueue[url]
 				saveDownloadQueue()
 				return "OK"
@@ -260,12 +273,13 @@ def videoAddProper():
 					("mode", "video"),
 				]
 			)
-			flash("Added " + getName(downloadQueue[subURL]), "info")
+			#flash("Added " + getName(downloadQueue[subURL]), "info")
 		saveDownloadQueue()
 		fireDownloadThread()
 		return jsonify(downloadQueue)
 	else:
 		return jsonify(downloadQueue)
+
 
 @app.route("/youtube/kill")
 def shutdownAll():
@@ -275,7 +289,7 @@ def shutdownAll():
 	loopBreaker = -1
 	terminateFlag += 1
 	saveDownloadQueue()
-	flash("Downloading will cease after current download finishes", "warn")
+	#flash("Downloading will cease after current download finishes", "warn")
 	download_thread._stop()
 	shutdown_server()
 	return redirect("/youtube", code=302)
@@ -287,7 +301,7 @@ def removeFinished():
 	newDownloadQueue = copy.copy(downloadQueue)
 	for url in downloadQueue.keys():
 		if downloadQueue[url]["status"] == "completed":
-			flash("Removed " + getName(downloadQueue[url]), "info")
+			#flash("Removed " + getName(downloadQueue[url]), "info")
 			del newDownloadQueue[url]
 	downloadQueue = newDownloadQueue
 	saveDownloadQueue()
@@ -299,14 +313,28 @@ def removeFinished():
 def forceSave():
 	global downloadQueue
 	saveDownloadQueue()
-	flash("Saved " + str(os.path.abspath(savedDownloadQueueFile)), "info")
+	#flash("Saved " + str(os.path.abspath(savedDownloadQueueFile)), "info")
 	return "OK"
 
-
+ 
 @app.route("/youtube")
 def videoList():
 	global downloadQueue
 	return render_template("vue.html")
+
+
+@app.route("/youtube/video/<filename>")
+def serveVideo(filename):
+	for file in os.listdir(youtubelocation):
+		print(file)
+		if file.startswith(filename.split(".")[0]):
+			fullpath = os.path.join(youtubelocation, file)
+			print("FULL:"+ fullpath)
+			if os.path.isfile(fullpath):
+				print("MATCH: " + file)
+				print("Sending: "+youtubelocation)
+				#return send_from_directory(youtubelocation, fullpath, as_attachment=False)
+				return send_file(fullpath, mimetype=fullpath)
 
 
 @app.route("/youtube/queue.json")
@@ -351,10 +379,11 @@ def getAllErrors():
 			return False
 	return True
 
+
 def imgurOnDownloadHook(index, httpUrl, filepath):
 	global currentDownloadPercent
 	print(str(downloadQueue))
-	print("Download Hook Fired for "+str(index))
+	print("Download Hook Fired for " + str(index))
 	currentDownloadPercent = (int(index) * 100) / int(imgurAlbumSize)
 	downloadQueue[currentDownloadUrl]["percent"] = currentDownloadPercent
 	downloadQueue[currentDownloadUrl]["filename"] = filepath
@@ -386,7 +415,7 @@ def doDownload():
 		currentDownloadUrl = nextUrl["url"]
 		print("proceeding to " + currentDownloadUrl)
 		try:
-			#there's a bug where this will error if your download folder is inside your application folder
+			# there's a bug where this will error if your download folder is inside your application folder
 			os.chdir(youtubelocation)
 			match = re.match(
 				"(https?)://(www\.)?(i\.|m\.)?imgur\.com/(a/|gallery/|r/)?/?(\w*)/?(\w*)(#[0-9]+)?(.\w*)?",  # NOQA
@@ -403,7 +432,7 @@ def doDownload():
 				downloader.on_image_download(imgurOnDownloadHook)
 
 				resultsTuple = downloader.save_images()
-				
+
 				print("Saved!")
 				print(resultsTuple)
 				downloadQueue[currentDownloadUrl]["status"] = "completed"
@@ -412,14 +441,14 @@ def doDownload():
 				with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 					ydl.download([nextUrl["url"]])
 				downloadQueue[nextUrl["url"]]["status"] = "completed"
-			#os.chdir(os.path.expanduser("~"))
+				# os.chdir(os.path.expanduser("~"))
 			os.chdir(os.path.dirname(os.path.realpath(__file__)))
 			loopBreaker = 10
 		except Exception as e:
 			nextUrl["status"] = "error"
 			nextUrl["error"] = e
 			os.chdir(os.path.dirname(os.path.realpath(__file__)))
-			flash("Error " + str(e), "error")
+			#flash("Error " + str(e), "error")
 		nextUrl = getNextQueuedItem()
 		if nextUrl != "NONE" and loopBreaker > 0:
 			loopBreaker = loopBreaker - 1
@@ -448,3 +477,4 @@ if __name__ == "__main__":
 	app.debug = debugmode
 	app.auto_reload = debugmode
 	app.run(host=hostname, port=portnumber)
+
