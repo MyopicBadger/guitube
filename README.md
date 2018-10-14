@@ -1,9 +1,14 @@
 # guitube
-A simple web frontend for youtube-dl
+A simple web frontend for youtube-dl (and imgur-dl)
 
 ![alt text](https://github.com/MyopicBadger/guitube/raw/master/doc/example.png "Guitube in action")
 
 Formerly known (to me at least) as PiTube, because it started as a program I wrote to run on a RaspberryPi.
+
+Now written in Vue.js and with partial imgur support!
+
+Now can sometimes play back the videos you've downloaded! (Sometimes, if you end up with a webm file that's small enough to not crash your browser... I'm working on it, ok?)
+
 
 ## Getting started
 
@@ -30,7 +35,7 @@ The .ini file contains the two sections, 'Downloader' and 'Server':
 
 #### Downloader
 
-`download_folder` - The folder that downloaded files are downloaded to. This needs to exist or downloads will fail.
+`download_folder` - The folder that downloaded files are downloaded to. This needs to exist or downloads will fail. It should also be an absolute path.
 
 `download_queue` - The file that the current download queue will be saved to. This is used to persist the queue between restarts of the application. This will be created if it doesn't exist, so you can delete it to delete the queue if you want, although you could just delete them on the page instead.
 
