@@ -25,7 +25,8 @@ from flask import (
 	url_for,
 	jsonify,
 	send_from_directory,
-	send_file
+	send_file,
+	Response
 )
 from youtube_dl import DownloadError
 
@@ -325,16 +326,18 @@ def videoList():
 
 @app.route("/youtube/video/<filename>")
 def serveVideo(filename):
-	for file in os.listdir(youtubelocation):
-		print(file)
-		if file.startswith(filename.split(".")[0]):
-			fullpath = os.path.join(youtubelocation, file)
+	for fname in os.listdir(youtubelocation):
+		print(fname)
+		if fname.startswith(filename.split(".")[0]):
+			fullpath = os.path.join(youtubelocation, fname)
 			print("FULL:"+ fullpath)
 			if os.path.isfile(fullpath):
-				print("MATCH: " + file)
+				print("MATCH: " + fname)
 				print("Sending: "+youtubelocation)
 				#return send_from_directory(youtubelocation, fullpath, as_attachment=False)
-				return send_file(fullpath, mimetype=fullpath)
+				#return send_file(fullpath, mimetype=fullpath)
+				g = open(fullpath, 'rb') # or any generator
+				return Response(g, direct_passthrough=True)
 
 
 @app.route("/youtube/queue.json")
