@@ -71,7 +71,7 @@
                     <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
                         [[safeName(item.url)]]
                         <span class="float-right">
-                            <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)'>
+                            <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)' v-if="item.playable">
                                 <span class="fas fa-play" aria-hidden="true"></span>&nbsp;
                             </a>
                             <a class="btn btn-secondary" href="#" v-on:click='deleteQueue(item.id)'>
@@ -206,7 +206,7 @@
                 playQueue: function (id) {
                     for (item in vm.downloadQueue) {
                         if (vm.downloadQueue[item].id == id) {
-                            vm.video = "/youtube/video/" + vm.downloadQueue[item].filename
+                            vm.video = "/youtube/video/play/" + vm.downloadQueue[item].filename
                             //$.get("/youtube/video/" + vm.downloadQueue[item].filename, function (data) {
                              //   vm.video = data
                             //});

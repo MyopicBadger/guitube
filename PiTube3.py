@@ -323,8 +323,20 @@ def videoList():
 	global downloadQueue
 	return render_template("vue.html")
 
+@app.route("/youtube/video/playable/<filename>")
+def queryVideo(filename):
+	for fname in os.listdir(youtubelocation):
+		print(fname)
+		if fname.startswith(filename.split(".")[0]):
+			fullpath = os.path.join(youtubelocation, fname)
+			print("FULL:"+ fullpath)
+			if os.path.isfile(fullpath):
+				print("MATCH: " + fname)
+				if fullpath.endswith(".mp4") or fullpath.endswith(".webm"):
+					return True
+	return False
 
-@app.route("/youtube/video/<filename>")
+@app.route("/youtube/video/play/<filename>")
 def serveVideo(filename):
 	for fname in os.listdir(youtubelocation):
 		print(fname)
@@ -412,6 +424,7 @@ def doDownload():
 		"progress_hooks": [my_hook],
 		"prefer_ffmpeg": True,
 		"restrictfilenames": True,
+		"format": "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
 	}
 	nextUrl = getNextQueuedItem()
 	if nextUrl != "NONE":
@@ -444,6 +457,7 @@ def doDownload():
 				with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 					ydl.download([nextUrl["url"]])
 				downloadQueue[nextUrl["url"]]["status"] = "completed"
+				downloadQueue[nextUrl["url"]]["playable"] = queryVideo(downloadQueue[nextUrl["url"]]["filename"])
 				# os.chdir(os.path.expanduser("~"))
 			os.chdir(os.path.dirname(os.path.realpath(__file__)))
 			loopBreaker = 10
