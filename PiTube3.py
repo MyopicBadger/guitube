@@ -341,7 +341,7 @@ def videoList():
 	return render_template("vue.html")
 
 
-def isPlayableFile(fname):
+def isPlayableFile(filename):
 	for fname in os.listdir(youtubelocation):
 		if fname.startswith(filename.split(".")[0]):
 			fullpath = os.path.join(youtubelocation, fname)
@@ -355,25 +355,17 @@ def isPlayableFile(fname):
 
 @app.route("/youtube/list/")
 def getAllFilesList():
-	folderView
+	folderView = {}
 	for fname in os.listdir(youtubelocation):
 		print(fname)
 
-		# Manually stringify the error object if there is one,
-		# because apparently jsonify can't do it automatically
-	for url in downloadQueue.keys():
-		if downloadQueue[url]["status"] == "error":
-			downloadQueue[url]["error"] = str(downloadQueue[url]["error"])
-	return jsonify(dict(downloadQueue))
+	return jsonify(dict(folderView))
 
 
 @app.route("/youtube/video/playable/<filename>")
 def queryVideo(filename):
-	
-		print(fname)
-		if isPlayableFile(fname):
-			return True
-	return False
+	print(filename)
+	return isPlayableFile(filename)
 
 
 @app.route("/youtube/video/play/<filename>")
