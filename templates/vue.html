@@ -222,7 +222,7 @@
                         }
                     }
                     if (targetURL) {
-                        $.get("/youtube/queue/" + targetURL, function (data) {
+                        $.post("{{ url_for('videoAddProper') }}", { videourl: vm.targetURL }, function (data) {
                             if (data == "OK") {
                                 vm.refresh()
                             }
