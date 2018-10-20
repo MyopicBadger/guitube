@@ -3,6 +3,7 @@ import configparser
 import copy
 import io
 import os
+
 #!/usr/bin/env python
 # import secrets # upgrade to this
 import random
@@ -15,13 +16,24 @@ import time
 import uuid
 
 import youtube_dl
-from flask import (Flask, Response, flash, json, jsonify, redirect,
-				   render_template, request, send_file, send_from_directory,
-				   url_for)
+from flask import (
+	Flask,
+	Response,
+	flash,
+	json,
+	jsonify,
+	redirect,
+	render_template,
+	request,
+	send_file,
+	send_from_directory,
+	url_for,
+)
 from youtube_dl import DownloadError
 
-from imgur_downloader import \
-	ImgurDownloader  # https://github.com/jtara1/imgur_downloader
+from imgur_downloader import (
+	ImgurDownloader
+)  # https://github.com/jtara1/imgur_downloader
 
 app = Flask(__name__)
 
@@ -111,17 +123,18 @@ def getDownloadQueue():
 	except:
 		downloadQueue = {}
 
+
 def generateNewID():
 	newID = str(uuid.uuid4())
-	print("New ID: "+ newID)
+	print("New ID: " + newID)
 	return newID
 
 
 def saveDownloadQueue():
 	global downloadQueue
 	dumbSave()
-	#for url in downloadQueue.keys():
-	#	downloadQueue[url]["id"] = "id_"+generateNewID()
+	# for url in downloadQueue.keys():
+	# 	downloadQueue[url]["id"] = "id_"+generateNewID()
 	try:
 		with open(savedDownloadQueueFile, "w") as savefile:
 			print("Saving: " + str(os.path.abspath(savedDownloadQueueFile)))
@@ -328,31 +341,52 @@ def videoList():
 	return render_template("vue.html")
 
 
-@app.route("/youtube/video/playable/<filename>")
-def queryVideo(filename):
+def isPlayableFile(fname):
 	for fname in os.listdir(youtubelocation):
-		print(fname)
 		if fname.startswith(filename.split(".")[0]):
 			fullpath = os.path.join(youtubelocation, fname)
-			#print("FULL:" + fullpath)
+			# print("FULL:" + fullpath)
 			if os.path.isfile(fullpath):
-				#print("MATCH: " + fname)
+				# print("MATCH: " + fname)
 				if fullpath.endswith(".mp4") or fullpath.endswith(".webm"):
 					return True
 	return False
 
 
+@app.route("/youtube/list/")
+def getAllFilesList():
+	folderView
+	for fname in os.listdir(youtubelocation):
+		print(fname)
+
+		# Manually stringify the error object if there is one,
+		# because apparently jsonify can't do it automatically
+	for url in downloadQueue.keys():
+		if downloadQueue[url]["status"] == "error":
+			downloadQueue[url]["error"] = str(downloadQueue[url]["error"])
+	return jsonify(dict(downloadQueue))
+
+
+@app.route("/youtube/video/playable/<filename>")
+def queryVideo(filename):
+	
+		print(fname)
+		if isPlayableFile(fname):
+			return True
+	return False
+
+
 @app.route("/youtube/video/play/<filename>")
 def serveVideo(filename):
-	#print("Requested:" + filename)
+	# print("Requested:" + filename)
 	for fname in os.listdir(youtubelocation):
 		print(fname)
 		if fname.startswith(filename.split(".")[0]):
 			fullpath = os.path.join(youtubelocation, fname)
-			#print("FULL:" + fullpath)
+			# print("FULL:" + fullpath)
 			if os.path.isfile(fullpath):
-				#print("MATCH: " + fname)
-				#print("Sending: " + youtubelocation)
+				# print("MATCH: " + fname)
+				# print("Sending: " + youtubelocation)
 				# return send_from_directory(youtubelocation, fullpath, as_attachment=False)
 				# return send_file(fullpath, mimetype=fullpath)
 				g = open(fullpath, "rb")  # or any generator
@@ -504,3 +538,4 @@ if __name__ == "__main__":
 	app.debug = debugmode
 	app.auto_reload = debugmode
 	app.run(host=hostname, port=portnumber)
+
