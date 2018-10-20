@@ -14,6 +14,7 @@ import subprocess
 import threading
 import time
 import uuid
+import hashlib
 
 import youtube_dl
 from flask import (
@@ -38,6 +39,7 @@ from imgur_downloader import (
 app = Flask(__name__)
 
 downloadQueue = {}
+folderView = {}
 currentDownloadPercent = 0
 currentDownloadUrl = ""
 imgurAlbumSize = 0
@@ -129,6 +131,8 @@ def generateNewID():
 	print("New ID: " + newID)
 	return newID
 
+def generateHashID(stringToHash):
+	return str(int(hashlib.md5(stringToHash.encode('utf-8')).hexdigest(), 16))
 
 def saveDownloadQueue():
 	global downloadQueue
@@ -353,12 +357,20 @@ def isPlayableFile(filename):
 	return False
 
 
-@app.route("/youtube/list/")
+@app.route("/youtube/list.json")
 def getAllFilesList():
-	folderView = {}
 	for fname in os.listdir(youtubelocation):
-		print(fname)
-
+		if (isPlayableFile(fname)):
+			folderView[fname] = dict(
+				[
+					("status", "completed"),
+					("filename", fname),
+					("canon", fname),
+					("playable", isPlayableFile(fname)),
+					("id", "id_" + generateHashID(fname)),
+					("mode", "video"),
+				]
+			)
 	return jsonify(dict(folderView))
 
 

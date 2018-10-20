@@ -37,20 +37,61 @@
                         aria-hidden="true"></span> Download</button>
             </div>
         </div>
-        <div class="card mb-3">
-            <div class="embed-responsive embed-responsive-16by9">
-                <video controls v-if="video" :src="video">
-                    <p>Your browser doesn't support HTML5 video. </p>
-                </video>
+
+        <div class="btn-group" role="group" aria-label="Secondary Controls">
+            <button type="button" class="btn btn-secondary" v-on:click="setPage('download')" v-bind:class="{ active: isPage('download') }">
+                <span class="fas fa-file-download" aria-hidden="true"></span> Downloads
+            </button>
+            <button type="button" class="btn btn-secondary" v-on:click="setPage('folder')" v-bind:class="{ active: isPage('folder') }">
+                <span class="fas fa-archive" aria-hidden="true"></span> Folder
+            </button>
+            <button type="button" class="btn btn-secondary" v-on:click="setPage('video')" v-bind:class="{ active: isPage('video') }">
+                <span class="fas fa-video" aria-hidden="true"></span> Video
+            </button>
+
+            <div class="btn-group dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
+                    <span class="fas fa-cogs" aria-hidden="true"></span> Advanced Options
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <a class="dropdown-item" v-on:click='refresh' href="#">
+                        <span class="fas fa-sync" aria-hidden="true"></span> Refresh
+                    </a>
+                    <a class="dropdown-item" v-on:click='save' href="#">
+                        <span class="fas fa-save" aria-hidden="true"></span> Force Save
+                    </a>
+                    <a class="dropdown-item" v-on:click='start' href="#">
+                        <span class="fas fa-play" aria-hidden="true"></span> Force Start
+                    </a>
+                    <a class="dropdown-item" v-on:click='clearcompleted' href="#">
+                        <span class="fas fa-trash" aria-hidden="true"></span> Clear Completed
+                    </a>
+                    <a class="dropdown-item" v-on:click='shutdown' href="#">
+                        <span class="fas fa-power-off" aria-hidden="true"></span> End Program
+                    </a>
+                </div>
             </div>
+
         </div>
+
         <div class="card mb-3">
             <div class="progress">
                 <div id="progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
                     aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" v-bind:style="progressStyle"></div>
             </div>
         </div>
-        <div class="card mb-3" id="mainQueue" v-if="downloadQueue">
+
+        <div class="card mb-3" v-if="page=='video'">
+            <div class="embed-responsive embed-responsive-16by9">
+                <video controls v-if="video" :src="video">
+                    <p>Your browser doesn't support HTML5 video. </p>
+                </video>
+            </div>
+        </div>
+
+
+        <div class="card mb-3" id="mainQueue" v-if="downloadQueue && page=='download'">
             <ul class="list-group">
                 <template v-for="item in downloadQueue">
                     <!-- ERROR -->
@@ -99,41 +140,32 @@
             </ul>
 
         </div>
-        <div class="card mb-3" v-else>
+        <div class="card mb-3" v-else-if="page=='download'">
             <div class="card-body">
                 No Files in Queue
             </div>
         </div>
 
-        <div class="card mb-3">
-            <div class="card-body ">
-
-                <div class="dropdown">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown"
-                        aria-haspopup="true" aria-expanded="false">
-                        Advanced Options
-                    </button>
-                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <a class="dropdown-item" v-on:click='refresh' href="#">
-                            <span class="fas fa-sync" aria-hidden="true"></span> Refresh
-                        </a>
-                        <a class="dropdown-item" v-on:click='save' href="#">
-                            <span class="fas fa-save" aria-hidden="true"></span> Force Save
-                        </a>
-                        <a class="dropdown-item" v-on:click='start' href="#">
-                            <span class="fas fa-play" aria-hidden="true"></span> Force Start
-                        </a>
-                        <a class="dropdown-item" v-on:click='clearcompleted' href="#">
-                            <span class="fas fa-trash" aria-hidden="true"></span> Clear Completed
-                        </a>
-                        <a class="dropdown-item" v-on:click='shutdown' href="#">
-                            <span class="fas fa-power-off" aria-hidden="true"></span> End Program
-                        </a>
-                    </div>
-                </div>
-
-
-            </div>
+        <div class="card mb-3" id="mainQueue" v-if="folderView  && page=='folder'">
+            <form class="form-inline my-2 my-lg-0">
+                <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" v-model="search">
+            </form>
+            <ul class="list-group">
+                <template v-for="item in filteredFolderView">
+                    <!-- COMPLETED -->
+                    <li class="list-group-item list-group-item-success" v-if="item.status == 'completed'">
+                        [[item.filename]]
+                        <span class="float-right">
+                            <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)' v-if="item.playable">
+                                <span class="fas fa-play" aria-hidden="true"></span>&nbsp;
+                            </a>
+                        </span>
+                    </li>
+                    <!-- OTHER -->
+                    <li class="list-group-item list-group-item-danger" v-else>[[item.url]]
+                        ([[item.filename]]) - RENDER ERROR</li>
+                </template>
+            </ul>
         </div>
     </div>
     </div>
@@ -143,17 +175,46 @@
     <script src="static/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
     <script>
-
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
         var vm = new Vue({
             el: '#mainpage',
             data: {
                 downloadQueue: {},
+                folderView: {},
                 inputurl: "",
                 added: [],
                 progressStyle: { width: '0%' },
-                video: ""
+                video: "",
+                page: "download",
+                search: "",
             },
             methods: {
+                setPage: function (pageName) {
+                    vm.page = pageName
+                },
+                isPage: function (pageName) {
+                    if (vm && vm.page) {
+                        return (vm.page == pageName)
+                    } else {
+                        return false
+                    }
+                },
                 safeName: function (url) {
                     if (vm.downloadQueue[url].filename) {
                         return vm.downloadQueue[url].filename
@@ -180,6 +241,9 @@
                         var calcPercent = Math.round((runningPercent / length)) + "%";
                         vm.progressStyle.width = calcPercent;
                     });
+                    $.get("{{ url_for('getAllFilesList') }}", function (data) {
+                        vm.folderView = data
+                    });
                 },
                 save: function (event) {
                     $.get("{{ url_for('forceSave') }}", function (data) {
@@ -205,13 +269,22 @@
                     vm.added.push(vm.inputurl.split(" "))
                     $.post("{{ url_for('videoAddProper') }}", { videourl: vm.inputurl }, function (data) {
                         console.log(data)
+                        for (item in vm.vm.added) {
+                            toastr.success("Added " + item)
+                        }
                         vm.added = []
                     });
                     vm.inputurl = "";
                 },
                 deleteQueue: function (id) {
+                    var videoName = downloadQueue[id].canon
                     $.get("/youtube/remove/" + id, function (data) {
                         if (data == "OK") {
+                            for (item in vm.downloadQueue) {
+                                if (vm.downloadQueue[item].id == id) {
+                                    toastr.success("Removed " + videoName)
+                                }
+                            }
                             vm.refresh()
                         }
                     });
@@ -232,17 +305,19 @@
                     }
                 },
                 playQueue: function (id) {
+                    // First loop checks to see if the video is in the download queue
                     for (item in vm.downloadQueue) {
                         if (vm.downloadQueue[item].id == id) {
-                            console.log("id: " + id)
-                            console.log("dqid: " + vm.downloadQueue[item].id)
                             vm.video = "/youtube/video/play/" + vm.downloadQueue[item].filename
-                            //$.get("/youtube/video/" + vm.downloadQueue[item].filename, function (data) {
-                            //   vm.video = data
-                            //});
                         }
                     }
-
+                    // Second loop checks to see if it is in the folderview 
+                    for (item in vm.folderView) {
+                        if (vm.folderView[item].id == id) {
+                            vm.video = "/youtube/video/play/" + vm.folderView[item].filename
+                        }
+                    }
+                    vm.page = "video"
                 },
                 formatBytes: function (bytes, decimals) {
                     if (bytes == 0) return '0 Byte';
@@ -263,6 +338,14 @@
                         vm.refresh()
                     }, 1000);
                 });
+            },
+            computed: {
+                filteredFolderView() {
+                    var permittedKeys = Object.keys(vm.folderView).filter(item => {
+                        return vm.folderView[item].canon.toLowerCase().includes(this.search.toLowerCase())
+                    })
+                    return permittedKeys.map(function (key) { return vm.folderView[key] });
+                }
             }
 
 
