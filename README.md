@@ -1,5 +1,6 @@
 # guitube
-A simple web frontend for youtube-dl (and imgur-dl)
+
+A simple web frontend to download youtube videos and imgur albums using youtube-dl (and imgur-dl)
 
 ![alt text](https://github.com/MyopicBadger/guitube/raw/master/doc/example.png "Guitube in action")
 
@@ -7,8 +8,7 @@ Formerly known (to me at least) as PiTube, because it started as a program I wro
 
 Now written in Vue.js and with partial imgur support!
 
-Now can sometimes play back the videos you've downloaded! (Sometimes, if you end up with a webm file that's small enough to not crash your browser... I'm working on it, ok?)
-
+Video playback is now possible for WEBM and MP4 videos, and the default configuration will attempt download videos it can play back if it can do so without compromising video quality.
 
 ## Getting started
 
@@ -18,7 +18,7 @@ You can install python from [Python.org](https://www.python.org/)
 
 That will also install pip, a python package management tool. You can use that to install flask and youtube-dl by running the following command:
 
-```
+```bash
 pip install Flask
 pip install youtube-dl
 ```
@@ -33,7 +33,7 @@ On first run, the program will create a config.ini file. This contains all the s
 
 The .ini file contains the two sections, 'Downloader' and 'Server':
 
-#### Downloader
+### Downloader
 
 `download_folder` - The folder that downloaded files are downloaded to. This needs to exist or downloads will fail. It should also be an absolute path.
 
@@ -41,7 +41,9 @@ The .ini file contains the two sections, 'Downloader' and 'Server':
 
 `dumb_download_queue` - Ignore this, it's dumb.
 
-#### Server
+`download_format_string` - This controls the formats that youtube-dl will try to download. See [youtube-dl's documentation](https://github.com/rg3/youtube-dl/#format-selection) for more details on how to customise it to your preferences. The default value we use is `bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best` This will first try to download the best quality video regardless of format, and will try to download the best quality m4a audio, so that the merged file can be an MP4 file. If this is not possible, it will fallback to the best quality audio in general, which might let it be a WEBM file, but will probably need to be MKV, and if it can't do that for some reason, it will download the best quality it can. WEBM and MP4 containers can be played back by most modern browsers using the <VIDEO> tag, hence the preference.
+
+### Server
 
 Server settings are configuration passed through to the built in Flask server
 
@@ -52,4 +54,3 @@ Server settings are configuration passed through to the built in Flask server
 `secret_key` - The secret key used to encrypt secure session cookies. It doesn't really matter what this is, as long as it's secret. This is automatically generated the first time you run the program.
 
 `debug_mode` - Controls whether the Flask server runs in debug_mode (see the [documentation](http://werkzeug.pocoo.org/docs/0.14/debug/) for details). You should definitely set this to False in production environments
-
