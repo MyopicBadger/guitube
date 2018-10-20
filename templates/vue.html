@@ -215,17 +215,25 @@
                     });
                 },
                 rerunQueue: function (id) {
-                    $.get("/youtube/queue/" + id, function (data) {
-                        if (data == "OK") {
-                            vm.refresh()
+                    var targetURL = false
+                    for (item in vm.downloadQueue) {
+                        if (vm.downloadQueue[item].id == id) {
+                            targetURL = vm.downloadQueue[item].url
                         }
-                    });
+                    }
+                    if (targetURL) {
+                        $.get("/youtube/queue/" + targetURL, function (data) {
+                            if (data == "OK") {
+                                vm.refresh()
+                            }
+                        });
+                    }
                 },
                 playQueue: function (id) {
                     for (item in vm.downloadQueue) {
                         if (vm.downloadQueue[item].id == id) {
-                            console.log("id: "+id)
-                            console.log("dqid: "+vm.downloadQueue[item].id)
+                            console.log("id: " + id)
+                            console.log("dqid: " + vm.downloadQueue[item].id)
                             vm.video = "/youtube/video/play/" + vm.downloadQueue[item].filename
                             //$.get("/youtube/video/" + vm.downloadQueue[item].filename, function (data) {
                             //   vm.video = data
