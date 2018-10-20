@@ -222,7 +222,7 @@
                         }
                     }
                     if (targetURL) {
-                        $.post("{{ url_for('videoAddProper') }}", { videourl: vm.targetURL }, function (data) {
+                        $.get("/youtube/retry/" + id, function (data) {
                             if (data == "OK") {
                                 vm.refresh()
                             }
