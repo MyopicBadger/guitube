@@ -38,9 +38,11 @@
             </div>
         </div>
         <div class="card mb-3">
-            <video controls v-if="video" :src="video">
-                <p>Your browser doesn't support HTML5 video. </p>
-            </video>
+            <div class="embed-responsive embed-responsive-16by9">
+                <video controls v-if="video" :src="video">
+                    <p>Your browser doesn't support HTML5 video. </p>
+                </video>
+            </div>
         </div>
         <div class="card mb-3">
             <div class="progress">
@@ -103,33 +105,32 @@
 
         <div class="card mb-3">
             <div class="card-body ">
-                <div class="row">
-                    <div class="col">
-                        <a class="btn btn-secondary btn-block" v-on:click='refresh' href="#">
+
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown"
+                        aria-haspopup="true" aria-expanded="false">
+                        Advanced Options
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item" v-on:click='refresh' href="#">
                             <span class="fas fa-sync" aria-hidden="true"></span> Refresh
                         </a>
-                    </div>
-                    <div class="col">
-                        <a class="btn btn-secondary btn-block" v-on:click='save' href="#">
+                        <a class="dropdown-item" v-on:click='save' href="#">
                             <span class="fas fa-save" aria-hidden="true"></span> Force Save
                         </a>
-                    </div>
-                    <div class="col">
-                        <a class="btn btn-secondary btn-block" v-on:click='start' href="#">
+                        <a class="dropdown-item" v-on:click='start' href="#">
                             <span class="fas fa-play" aria-hidden="true"></span> Force Start
                         </a>
-                    </div>
-                    <div class="col">
-                        <a class="btn btn-secondary btn-block" v-on:click='clearcompleted' href="#">
+                        <a class="dropdown-item" v-on:click='clearcompleted' href="#">
                             <span class="fas fa-trash" aria-hidden="true"></span> Clear Completed
                         </a>
-                    </div>
-                    <div class="col">
-                        <a class="btn btn-secondary btn-block" v-on:click='shutdown' href="#">
+                        <a class="dropdown-item" v-on:click='shutdown' href="#">
                             <span class="fas fa-power-off" aria-hidden="true"></span> End Program
                         </a>
                     </div>
                 </div>
+
+
             </div>
         </div>
     </div>
@@ -223,6 +224,8 @@
                 playQueue: function (id) {
                     for (item in vm.downloadQueue) {
                         if (vm.downloadQueue[item].id == id) {
+                            console.log("id: "+id)
+                            console.log("dqid: "+vm.downloadQueue[item].id)
                             vm.video = "/youtube/video/play/" + vm.downloadQueue[item].filename
                             //$.get("/youtube/video/" + vm.downloadQueue[item].filename, function (data) {
                             //   vm.video = data

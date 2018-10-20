@@ -3,7 +3,6 @@ import configparser
 import copy
 import io
 import os
-
 #!/usr/bin/env python
 # import secrets # upgrade to this
 import random
@@ -13,26 +12,16 @@ import string
 import subprocess
 import threading
 import time
+import uuid
 
 import youtube_dl
-from flask import (
-	Flask,
-	flash,
-	json,
-	redirect,
-	render_template,
-	request,
-	url_for,
-	jsonify,
-	send_from_directory,
-	send_file,
-	Response
-)
+from flask import (Flask, Response, flash, json, jsonify, redirect,
+				   render_template, request, send_file, send_from_directory,
+				   url_for)
 from youtube_dl import DownloadError
 
-from imgur_downloader import (
-	ImgurDownloader
-)  # https://github.com/jtara1/imgur_downloader
+from imgur_downloader import \
+	ImgurDownloader  # https://github.com/jtara1/imgur_downloader
 
 app = Flask(__name__)
 
@@ -52,6 +41,7 @@ hostname = "0.0.0.0"
 portnumber = 5001
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
+downloadFormatString = "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -84,6 +74,11 @@ def checkAndSetConfig():
 		Config.set("Downloader", "download_folder", ".")
 		Config.set("Downloader", "download_queue", "queue.json")
 		Config.set("Downloader", "dumb_download_queue", "queue.temp")
+		Config.set(
+			"Downloader",
+			"download_format_string",
+			"bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
+		)
 		Config.add_section("Server")
 		Config.set("Server", "host", "0.0.0.0")
 		Config.set("Server", "port", "5002")
@@ -99,6 +94,7 @@ def checkAndSetConfig():
 		youtubelocation = parser.get("Downloader", "download_folder")
 		dumbSaveFileName = parser.get("Downloader", "download_queue")
 		jsonSaveFileName = parser.get("Downloader", "dumb_download_queue")
+		downloadFormatString = parser.get("Downloader", "download_format_string")
 		hostname = parser.get("Server", "host")
 		portnumber = parser.getint("Server", "port")
 		debugmode = parser.getboolean("Server", "debug_mode")
@@ -115,14 +111,22 @@ def getDownloadQueue():
 	except:
 		downloadQueue = {}
 
+def generateNewID():
+	newID = str(uuid.uuid4())
+	print("New ID: "+ newID)
+	return newID
+
 
 def saveDownloadQueue():
 	global downloadQueue
 	dumbSave()
+	#for url in downloadQueue.keys():
+	#	downloadQueue[url]["id"] = "id_"+generateNewID()
 	try:
 		with open(savedDownloadQueueFile, "w") as savefile:
 			print("Saving: " + str(os.path.abspath(savedDownloadQueueFile)))
 			print(json.dumps(downloadQueue, ensure_ascii=False), file=savefile)
+
 	except TypeError:
 		for url in downloadQueue.keys():
 			downloadQueue[url]["status"] == str(downloadQueue[url]["status"])
@@ -214,7 +218,7 @@ def videoRemove(id_num):
 				downloadQueue[url]["status"] != "downloading"
 				or downloadQueue[url]["status"] != "finished"
 			):
-				#flash("Removed " + getName(downloadQueue[url]), "info")
+				# flash("Removed " + getName(downloadQueue[url]), "info")
 				del downloadQueue[url]
 				saveDownloadQueue()
 				return "OK"
@@ -270,11 +274,11 @@ def videoAddProper():
 				[
 					("status", "queued"),
 					("url", subURL),
-					("id", "id_" + str(idCounter)),
+					("id", "id_" + generateNewID()),
 					("mode", "video"),
 				]
 			)
-			#flash("Added " + getName(downloadQueue[subURL]), "info")
+			# flash("Added " + getName(downloadQueue[subURL]), "info")
 		saveDownloadQueue()
 		fireDownloadThread()
 		return jsonify(downloadQueue)
@@ -290,7 +294,7 @@ def shutdownAll():
 	loopBreaker = -1
 	terminateFlag += 1
 	saveDownloadQueue()
-	#flash("Downloading will cease after current download finishes", "warn")
+	# flash("Downloading will cease after current download finishes", "warn")
 	download_thread._stop()
 	shutdown_server()
 	return redirect("/youtube", code=302)
@@ -302,7 +306,7 @@ def removeFinished():
 	newDownloadQueue = copy.copy(downloadQueue)
 	for url in downloadQueue.keys():
 		if downloadQueue[url]["status"] == "completed":
-			#flash("Removed " + getName(downloadQueue[url]), "info")
+			# flash("Removed " + getName(downloadQueue[url]), "info")
 			del newDownloadQueue[url]
 	downloadQueue = newDownloadQueue
 	saveDownloadQueue()
@@ -314,14 +318,15 @@ def removeFinished():
 def forceSave():
 	global downloadQueue
 	saveDownloadQueue()
-	#flash("Saved " + str(os.path.abspath(savedDownloadQueueFile)), "info")
+	# flash("Saved " + str(os.path.abspath(savedDownloadQueueFile)), "info")
 	return "OK"
 
- 
+
 @app.route("/youtube")
 def videoList():
 	global downloadQueue
 	return render_template("vue.html")
+
 
 @app.route("/youtube/video/playable/<filename>")
 def queryVideo(filename):
@@ -329,26 +334,28 @@ def queryVideo(filename):
 		print(fname)
 		if fname.startswith(filename.split(".")[0]):
 			fullpath = os.path.join(youtubelocation, fname)
-			print("FULL:"+ fullpath)
+			#print("FULL:" + fullpath)
 			if os.path.isfile(fullpath):
-				print("MATCH: " + fname)
+				#print("MATCH: " + fname)
 				if fullpath.endswith(".mp4") or fullpath.endswith(".webm"):
 					return True
 	return False
 
+
 @app.route("/youtube/video/play/<filename>")
 def serveVideo(filename):
+	#print("Requested:" + filename)
 	for fname in os.listdir(youtubelocation):
 		print(fname)
 		if fname.startswith(filename.split(".")[0]):
 			fullpath = os.path.join(youtubelocation, fname)
-			print("FULL:"+ fullpath)
+			#print("FULL:" + fullpath)
 			if os.path.isfile(fullpath):
-				print("MATCH: " + fname)
-				print("Sending: "+youtubelocation)
-				#return send_from_directory(youtubelocation, fullpath, as_attachment=False)
-				#return send_file(fullpath, mimetype=fullpath)
-				g = open(fullpath, 'rb') # or any generator
+				#print("MATCH: " + fname)
+				#print("Sending: " + youtubelocation)
+				# return send_from_directory(youtubelocation, fullpath, as_attachment=False)
+				# return send_file(fullpath, mimetype=fullpath)
+				g = open(fullpath, "rb")  # or any generator
 				return Response(g, direct_passthrough=True)
 
 
@@ -419,12 +426,13 @@ def doDownload():
 	global loopBreaker
 	global terminateFlag
 	global imgurAlbumSize
+	print(downloadFormatString)
 	ydl_opts = {
 		"logger": MyLogger(),
 		"progress_hooks": [my_hook],
 		"prefer_ffmpeg": True,
 		"restrictfilenames": True,
-		"format": "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+		"format": downloadFormatString,
 	}
 	nextUrl = getNextQueuedItem()
 	if nextUrl != "NONE":
@@ -457,7 +465,9 @@ def doDownload():
 				with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 					ydl.download([nextUrl["url"]])
 				downloadQueue[nextUrl["url"]]["status"] = "completed"
-				downloadQueue[nextUrl["url"]]["playable"] = queryVideo(downloadQueue[nextUrl["url"]]["filename"])
+				downloadQueue[nextUrl["url"]]["playable"] = queryVideo(
+					downloadQueue[nextUrl["url"]]["filename"]
+				)
 				# os.chdir(os.path.expanduser("~"))
 			os.chdir(os.path.dirname(os.path.realpath(__file__)))
 			loopBreaker = 10
@@ -465,7 +475,7 @@ def doDownload():
 			nextUrl["status"] = "error"
 			nextUrl["error"] = e
 			os.chdir(os.path.dirname(os.path.realpath(__file__)))
-			#flash("Error " + str(e), "error")
+			# flash("Error " + str(e), "error")
 		nextUrl = getNextQueuedItem()
 		if nextUrl != "NONE" and loopBreaker > 0:
 			loopBreaker = loopBreaker - 1
@@ -494,4 +504,3 @@ if __name__ == "__main__":
 	app.debug = debugmode
 	app.auto_reload = debugmode
 	app.run(host=hostname, port=portnumber)
-
