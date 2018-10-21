@@ -203,6 +203,7 @@
                 video: "",
                 page: "download",
                 search: "",
+                lastFolderPing: 30,
             },
             methods: {
                 setPage: function (pageName) {
@@ -241,6 +242,12 @@
                         var calcPercent = Math.round((runningPercent / length)) + "%";
                         vm.progressStyle.width = calcPercent;
                     });
+                    vm.lastFolderPing++;
+                    if (vm.lastFolderPing > 30) {
+                        vm.refreshFolderList(event)
+                    }
+                },
+                refreshFolderList: function (event) {
                     $.get("{{ url_for('getAllFilesList') }}", function (data) {
                         vm.folderView = data
                     });
