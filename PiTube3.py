@@ -73,19 +73,18 @@ terminateFlag = 0
 lastFilename = ""
 download_thread = 0
 configfile_name = "config.ini"
-commandMapping = {
-    "ls -1" : "Get-ChildItem -Name",
-    "pwd" : "Get-Location",
-}
+commandMapping = {"ls -1": "Get-ChildItem -Name", "pwd": "Get-Location"}
+
 
 def getCommand(commandString):
-    if os_string == 'Linux':
+    if os_string == "Linux":
         return commandString
     else:
         if commandString in commandMapping:
             return commandMapping[commandString]
         else:
             return commandString
+
 
 def checkAndSetConfig():
     global youtubelocation, dumbSaveFileName, jsonSaveFileName, hostname, portnumber, debugmode, app_secret_key, downloadFormatString, os_string
@@ -132,8 +131,6 @@ def checkAndSetConfig():
         os_string = parser.get("Server", "os_string")
 
 
-
-
 def getDownloadQueue():
     global downloadQueue
     print("Loading: " + str(os.path.abspath(savedDownloadQueueFile)))
@@ -158,8 +155,6 @@ def generateHashID(stringToHash):
 def saveDownloadQueue():
     global downloadQueue
     dumbSave()
-    # for url in downloadQueue.keys():
-    # 	downloadQueue[url]["id"] = "id_"+generateNewID()
     try:
         with open(savedDownloadQueueFile, "w") as savefile:
             print("Saving: " + str(os.path.abspath(savedDownloadQueueFile)))
@@ -182,10 +177,12 @@ def rootRedirect():
 
 
 def executeCommand(command):
-    print("On os: "+ os_string)
+    print("On os: " + os_string)
     command = getCommand(command)
     print(command)
-    proc = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, bufsize=0, shell=True)
+    proc = subprocess.Popen(
+        shlex.split(command), stdout=subprocess.PIPE, bufsize=0, shell=True
+    )
     return str(proc.stdout.read())
 
 
@@ -258,7 +255,6 @@ def videoRemove(id_num):
                 downloadQueue[url]["status"] != "downloading"
                 or downloadQueue[url]["status"] != "finished"
             ):
-                # flash("Removed " + getName(downloadQueue[url]), "info")
                 del downloadQueue[url]
                 saveDownloadQueue()
                 return "OK"
@@ -318,7 +314,6 @@ def videoAddProper():
                     ("mode", "video"),
                 ]
             )
-            # flash("Added " + getName(downloadQueue[subURL]), "info")
         saveDownloadQueue()
         fireDownloadThread()
         return jsonify(downloadQueue)
@@ -334,7 +329,6 @@ def shutdownAll():
     loopBreaker = -1
     terminateFlag += 1
     saveDownloadQueue()
-    # flash("Downloading will cease after current download finishes", "warn")
     download_thread._stop()
     shutdown_server()
     return redirect("/youtube", code=302)
@@ -346,7 +340,6 @@ def removeFinished():
     newDownloadQueue = copy.copy(downloadQueue)
     for url in downloadQueue.keys():
         if downloadQueue[url]["status"] == "completed":
-            # flash("Removed " + getName(downloadQueue[url]), "info")
             del newDownloadQueue[url]
     downloadQueue = newDownloadQueue
     saveDownloadQueue()
@@ -358,7 +351,6 @@ def removeFinished():
 def forceSave():
     global downloadQueue
     saveDownloadQueue()
-    # flash("Saved " + str(os.path.abspath(savedDownloadQueueFile)), "info")
     return "OK"
 
 
@@ -371,59 +363,34 @@ def videoList():
 def isPlayableFile(filename):
     for fname in os.listdir(youtubelocation):
         if fname.startswith(filename.split(".")[0]):
-            fullpath = os.path.join(youtubelocation, fname)
-            # print("FULL:" + fullpath)
+            fullpath = fname
             if os.path.isfile(fullpath):
-                # print("MATCH: " + fname)
                 if fullpath.endswith(".mp4") or fullpath.endswith(".webm"):
                     return True
     return False
-
-# The performance on this is terrible
-# If I comment out the generateHash, it's only 7 times too slow, rather than 250 times.
-def getInitialFileList():
-    start = time.time()
-    for fname in os.listdir(youtubelocation):
-        if isPlayableFile(fname):
-            folderView[fname] = dict(
-                [
-                    ("status", "completed"),
-                    ("filename", fname),
-                    ("canon", fname),
-                    ("playable", isPlayableFile(fname)),
-                    ("id", "id_" + generateHashID(fname)),
-                    ("mode", "video"),
-                ]
-            )
-    end = time.time()
-    print("list speed: " + str(end - start))
-    return jsonify(dict(folderView))
-
-
 
 @app.route("/youtube/list.json")
 def getAllFilesList():
     global lastFileList
     start = time.time()
-    #fileList = executeCommand(getCommand("ls -1")+ " "+youtubelocation)
-    fileList = glob.glob("*")
+    fileList = glob.glob(youtubelocation + "*")
     if fileList != lastFileList:
         lastFileList = fileList
-        #for fname in fileList.split("\\n"):
-        for fname in fileList.split("\\n"):
+        for fpath in fileList:
+            fname = os.path.basename(fpath)
             if fname.endswith(".mp4") or fname.endswith(".webm"):
                 folderView[fname] = dict(
                     [
                         ("status", "completed"),
                         ("filename", fname),
                         ("canon", fname),
-                        ("playable", isPlayableFile(fname)),
+                        ("playable", True),
                         ("id", "id_" + fname),
                         ("mode", "video"),
                     ]
                 )
     end = time.time()
-    print("list speed: " + str(end - start)+"s")
+    print("list speed: " + str(end - start) + "s")
     return jsonify(dict(folderView))
 
 
@@ -435,15 +402,11 @@ def queryVideo(filename):
 
 @app.route("/youtube/video/play/<filename>")
 def serveVideo(filename):
-    # print("Requested:" + filename)
     for fname in os.listdir(youtubelocation):
         print(fname)
         if fname.startswith(filename.split(".")[0]):
             fullpath = os.path.join(youtubelocation, fname)
-            # print("FULL:" + fullpath)
             if os.path.isfile(fullpath):
-                # print("MATCH: " + fname)
-                # print("Sending: " + youtubelocation)
                 # return send_from_directory(youtubelocation, fullpath, as_attachment=False)
                 # return send_file(fullpath, mimetype=fullpath)
                 g = open(fullpath, "rb")  # or any generator
@@ -559,14 +522,12 @@ def doDownload():
                 downloadQueue[nextUrl["url"]]["playable"] = queryVideo(
                     downloadQueue[nextUrl["url"]]["filename"]
                 )
-                # os.chdir(os.path.expanduser("~"))
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
             loopBreaker = 10
         except Exception as e:
             nextUrl["status"] = "error"
             nextUrl["error"] = e
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
-            # flash("Error " + str(e), "error")
         nextUrl = getNextQueuedItem()
         if nextUrl != "NONE" and loopBreaker > 0:
             loopBreaker = loopBreaker - 1

@@ -37,42 +37,42 @@
                         aria-hidden="true"></span> Download</button>
             </div>
         </div>
-
-        <div class="btn-group" role="group" aria-label="Secondary Controls">
-            <button type="button" class="btn btn-secondary" v-on:click="setPage('download')" v-bind:class="{ active: isPage('download') }">
-                <span class="fas fa-file-download" aria-hidden="true"></span> Downloads
-            </button>
-            <button type="button" class="btn btn-secondary" v-on:click="setPage('folder')" v-bind:class="{ active: isPage('folder') }">
-                <span class="fas fa-archive" aria-hidden="true"></span> Folder
-            </button>
-            <button type="button" class="btn btn-secondary" v-on:click="setPage('video')" v-bind:class="{ active: isPage('video') }">
-                <span class="fas fa-video" aria-hidden="true"></span> Video
-            </button>
-
-            <div class="btn-group dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown"
-                    aria-haspopup="true" aria-expanded="false">
-                    <span class="fas fa-cogs" aria-hidden="true"></span> Advanced Options
+        <div class="card mb-3">
+            <div class="btn-group" role="group" aria-label="Secondary Controls">
+                <button type="button" class="btn btn-secondary" v-on:click="setPage('download')" v-bind:class="{ active: isPage('download') }">
+                    <span class="fas fa-file-download" aria-hidden="true"></span> Downloads
                 </button>
-                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <a class="dropdown-item" v-on:click='refresh' href="#">
-                        <span class="fas fa-sync" aria-hidden="true"></span> Refresh
-                    </a>
-                    <a class="dropdown-item" v-on:click='save' href="#">
-                        <span class="fas fa-save" aria-hidden="true"></span> Force Save
-                    </a>
-                    <a class="dropdown-item" v-on:click='start' href="#">
-                        <span class="fas fa-play" aria-hidden="true"></span> Force Start
-                    </a>
-                    <a class="dropdown-item" v-on:click='clearcompleted' href="#">
-                        <span class="fas fa-trash" aria-hidden="true"></span> Clear Completed
-                    </a>
-                    <a class="dropdown-item" v-on:click='shutdown' href="#">
-                        <span class="fas fa-power-off" aria-hidden="true"></span> End Program
-                    </a>
+                <button type="button" class="btn btn-secondary" v-on:click="setPage('folder')" v-bind:class="{ active: isPage('folder') }">
+                    <span class="fas fa-archive" aria-hidden="true"></span> Folder
+                </button>
+                <button type="button" class="btn btn-secondary" v-on:click="setPage('video')" v-bind:class="{ active: isPage('video') }">
+                    <span class="fas fa-video" aria-hidden="true"></span> Video
+                </button>
+
+                <div class="btn-group dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown"
+                        aria-haspopup="true" aria-expanded="false">
+                        <span class="fas fa-cogs" aria-hidden="true"></span> Advanced Options
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item" v-on:click='refresh' href="#">
+                            <span class="fas fa-sync" aria-hidden="true"></span> Refresh
+                        </a>
+                        <a class="dropdown-item" v-on:click='save' href="#">
+                            <span class="fas fa-save" aria-hidden="true"></span> Force Save
+                        </a>
+                        <a class="dropdown-item" v-on:click='start' href="#">
+                            <span class="fas fa-play" aria-hidden="true"></span> Force Start
+                        </a>
+                        <a class="dropdown-item" v-on:click='clearcompleted' href="#">
+                            <span class="fas fa-trash" aria-hidden="true"></span> Clear Completed
+                        </a>
+                        <a class="dropdown-item" v-on:click='shutdown' href="#">
+                            <span class="fas fa-power-off" aria-hidden="true"></span> End Program
+                        </a>
+                    </div>
                 </div>
             </div>
-
         </div>
 
         <div class="card mb-3">
@@ -147,9 +147,19 @@
         </div>
 
         <div class="card mb-3" id="mainQueue" v-if="folderView  && page=='folder'">
-            <form class="form-inline my-2 my-lg-0">
-                <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" v-model="search">
-            </form>
+            <div class="card-header">
+                <form class="form-inline">
+                    <div class="input-group">
+                        <input class="form-control" id="searchEntry" type="search" placeholder="Search"
+                            aria-label="Search" v-model="search">
+                        <div class="input-group-append">
+                            <a class="btn btn-outline-secondary" type="button" v-on:click='clearSearch()'>
+                                <span class="fas fa-times" aria-hidden="true"></span>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
             <ul class="list-group">
                 <template v-for="item in filteredFolderView">
                     <!-- COMPLETED -->
@@ -244,6 +254,7 @@
                     });
                     vm.lastFolderPing++;
                     if (vm.lastFolderPing > 30) {
+                        vm.lastFolderPing = 0;
                         vm.refreshFolderList(event)
                     }
                 },
@@ -336,6 +347,9 @@
                 },
                 formatPercent: function (percent) {
                     return Math.floor(percent) + "%"
+                },
+                clearSearch: function() {
+                    vm.search = ""
                 }
             },
             delimiters: ['[[', ']]'],
