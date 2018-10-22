@@ -15,6 +15,7 @@ import threading
 import time
 import uuid
 import hashlib
+import glob
 
 import youtube_dl
 from flask import (
@@ -57,6 +58,7 @@ portnumber = 5001
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
 downloadFormatString = "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+os_string = "Linux"
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -71,10 +73,22 @@ terminateFlag = 0
 lastFilename = ""
 download_thread = 0
 configfile_name = "config.ini"
+commandMapping = {
+    "ls -1" : "Get-ChildItem -Name",
+    "pwd" : "Get-Location",
+}
 
+def getCommand(commandString):
+    if os_string == 'Linux':
+        return commandString
+    else:
+        if commandString in commandMapping:
+            return commandMapping[commandString]
+        else:
+            return commandString
 
 def checkAndSetConfig():
-    global youtubelocation, dumbSaveFileName, jsonSaveFileName, hostname, portnumber, debugmode, app_secret_key
+    global youtubelocation, dumbSaveFileName, jsonSaveFileName, hostname, portnumber, debugmode, app_secret_key, downloadFormatString, os_string
     if not os.path.isfile(configfile_name):
         # Create the configuration file as it doesn't exist yet
         cfgfile = open(configfile_name, "w")
@@ -99,6 +113,7 @@ def checkAndSetConfig():
         Config.set("Server", "port", "5002")
         Config.set("Server", "secret_key", password)
         Config.set("Server", "debug_mode", "False")
+        Config.set("Server", "os_string", "Linux")
 
         Config.write(cfgfile)
         cfgfile.close()
@@ -114,6 +129,9 @@ def checkAndSetConfig():
         portnumber = parser.getint("Server", "port")
         debugmode = parser.getboolean("Server", "debug_mode")
         app_secret_key = parser.get("Server", "secret_key")
+        os_string = parser.get("Server", "os_string")
+
+
 
 
 def getDownloadQueue():
@@ -164,8 +182,10 @@ def rootRedirect():
 
 
 def executeCommand(command):
+    print("On os: "+ os_string)
+    command = getCommand(command)
     print(command)
-    proc = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, bufsize=0)
+    proc = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, bufsize=0, shell=True)
     return str(proc.stdout.read())
 
 
@@ -385,9 +405,11 @@ def getInitialFileList():
 def getAllFilesList():
     global lastFileList
     start = time.time()
-    fileList = executeCommand("ls -1 "+youtubelocation)
+    #fileList = executeCommand(getCommand("ls -1")+ " "+youtubelocation)
+    fileList = glob.glob("*")
     if fileList != lastFileList:
         lastFileList = fileList
+        #for fname in fileList.split("\\n"):
         for fname in fileList.split("\\n"):
             if fname.endswith(".mp4") or fname.endswith(".webm"):
                 folderView[fname] = dict(
