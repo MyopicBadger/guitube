@@ -110,7 +110,7 @@
                     </li>
                     <!-- FINISHED -->
                     <li class="list-group-item list-group-item-success" v-else-if="item.status == 'finished'">
-                        [[item.filename]] - Converting...
+                        [[item.canon]] - Converting...
                     </li>
                     <!-- COMPLETED -->
                     <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
@@ -125,7 +125,7 @@
                         </span>
                     </li>
                     <!-- DOWNLOADING -->
-                    <li class="list-group-item list-group-item-info" v-else-if="item.status == 'downloading'">[[item.filename]]
+                    <li class="list-group-item list-group-item-info" v-else-if="item.status == 'downloading'">[[item.canon]]
                         (<span id="db">[[formatBytes(item.dbytes)]]</span>
                         / <span id="tb">[[formatBytes(item.tbytes)]]</span> @ <span id="sb">[[formatBytes(item.speed)]]</span>s)
                         - <span id="pc">[[formatPercent(item.percent)]]</span></li>
@@ -227,10 +227,10 @@
                     }
                 },
                 safeName: function (url) {
-                    if (vm.downloadQueue[url].filename) {
-                        return vm.downloadQueue[url].filename
-                    } else if (vm.downloadQueue[url].canon) {
+                    if (vm.downloadQueue[url].canon) {
                         return vm.downloadQueue[url].canon
+                    } else if (vm.downloadQueue[url].filename) {
+                        return vm.downloadQueue[url].filename
                     } else {
                         return vm.downloadQueue[url].url
                     }
@@ -302,6 +302,7 @@
                     $.post("{{ url_for('videoAddProper') }}", { videourl: vm.inputurl }, function (data) {
                         console.log(data)
                         for (item in vm.added) {
+                            console.log(item)
                             toastr.success("Added " + item)
                         }
                         vm.added = []
