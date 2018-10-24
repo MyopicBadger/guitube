@@ -150,8 +150,8 @@
             <div class="card-header">
                 <form class="form-inline">
                     <div class="input-group">
-                        <input class="form-control" id="searchEntry" type="search" placeholder="Search"
-                            aria-label="Search" v-model="search">
+                        <input class="form-control" id="searchEntry" type="search" placeholder="Search" aria-label="Search"
+                            v-model="search">
                         <div class="input-group-append">
                             <a class="btn btn-outline-secondary" type="button" v-on:click='clearSearch()'>
                                 <span class="fas fa-times" aria-hidden="true"></span>
@@ -235,6 +235,20 @@
                         return vm.downloadQueue[url].url
                     }
                 },
+                getDownloadByID: function (id) {
+                    for (item in vm.downloadQueue) {
+                        if (vm.downloadQueue[item].id == id) {
+                            return vm.downloadQueue[item]
+                        }
+                    }
+                },
+                getFolderByID: function (id) {
+                    for (item in vm.folderView) {
+                        if (vm.folderView[item].id == id) {
+                            return vm.folderView[item]
+                        }
+                    }
+                },
                 refresh: function (event) {
                     $.get("{{ url_for('videoJSONQueue') }}", function (data) {
                         vm.downloadQueue = data
@@ -287,7 +301,7 @@
                     vm.added.push(vm.inputurl.split(" "))
                     $.post("{{ url_for('videoAddProper') }}", { videourl: vm.inputurl }, function (data) {
                         console.log(data)
-                        for (item in vm.vm.added) {
+                        for (item in vm.added) {
                             toastr.success("Added " + item)
                         }
                         vm.added = []
@@ -295,25 +309,19 @@
                     vm.inputurl = "";
                 },
                 deleteQueue: function (id) {
-                    var videoName = downloadQueue[id].canon
+                    console.log(id)
+                    var videoName = vm.getDownloadByID(id).canon
+                    console.log(videoName)
                     $.get("/youtube/remove/" + id, function (data) {
                         if (data == "OK") {
-                            for (item in vm.downloadQueue) {
-                                if (vm.downloadQueue[item].id == id) {
-                                    toastr.success("Removed " + videoName)
-                                }
-                            }
+                            toastr.success("Removed " + videoName)
                             vm.refresh()
                         }
                     });
                 },
                 rerunQueue: function (id) {
                     var targetURL = false
-                    for (item in vm.downloadQueue) {
-                        if (vm.downloadQueue[item].id == id) {
-                            targetURL = vm.downloadQueue[item].url
-                        }
-                    }
+                    targetURL = vm.getDownloadByID(id).url
                     if (targetURL) {
                         $.get("/youtube/retry/" + id, function (data) {
                             if (data == "OK") {
@@ -324,17 +332,11 @@
                 },
                 playQueue: function (id) {
                     // First loop checks to see if the video is in the download queue
-                    for (item in vm.downloadQueue) {
-                        if (vm.downloadQueue[item].id == id) {
-                            vm.video = "/youtube/video/play/" + vm.downloadQueue[item].filename
-                        }
+                    var theVideo = vm.getDownloadByID(id)
+                    if (!theVideo) {
+                        theVideo = vm.getFolderByID(id)
                     }
-                    // Second loop checks to see if it is in the folderview 
-                    for (item in vm.folderView) {
-                        if (vm.folderView[item].id == id) {
-                            vm.video = "/youtube/video/play/" + vm.folderView[item].filename
-                        }
-                    }
+                    vm.video = "/youtube/video/play/" + theVideo.filename
                     vm.page = "video"
                 },
                 formatBytes: function (bytes, decimals) {
@@ -348,7 +350,7 @@
                 formatPercent: function (percent) {
                     return Math.floor(percent) + "%"
                 },
-                clearSearch: function() {
+                clearSearch: function () {
                     vm.search = ""
                 }
             },
