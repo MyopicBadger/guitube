@@ -298,15 +298,9 @@
                     });
                 },
                 addURL: function (event) {
-                    console.log("URL")
-                    console.log(vm.inputurl)
-                    console.log("Split")
-                    console.log(vm.inputurl.split(" "))
                     vm.added.push(vm.inputurl.split(" "))
                     $.post("{{ url_for('videoAddProper') }}", { videourl: vm.inputurl }, function (data) {
-                        console.log(data)
                         for (item in vm.added) {
-                            console.log(vm.added[item])
                             toastr.success("Added " + vm.added[item])
                         }
                         vm.added = []
@@ -314,7 +308,6 @@
                     vm.inputurl = "";
                 },
                 deleteQueue: function (id) {
-                    console.log(id)
                     var videoName = vm.getDownloadByID(id).canon
                     console.log(videoName)
                     $.get("/youtube/remove/" + id, function (data) {
@@ -378,47 +371,6 @@
 
 
         })
-
-
-        /* REMOVED IN FAVOUR OF VUE
-		$(document).ready(function () {
-			{% with messages = get_flashed_messages(with_categories = true) %}
-			{% if messages %}
-
-			toastr.options = {
-				"closeButton": true,
-				"debug": false,
-				"newestOnTop": true,
-				"progressBar": true,
-				"positionClass": "toast-top-right",
-				"preventDuplicates": false,
-				"onclick": null,
-				"showDuration": "300",
-				"hideDuration": "1000",
-				"timeOut": "5000",
-				"extendedTimeOut": "1000",
-				"showEasing": "swing",
-				"hideEasing": "linear",
-				"showMethod": "fadeIn",
-				"hideMethod": "fadeOut"
-			}
-			console.log("executed a")
-			{% for category, message in messages %}
-			{% if category == 'error' %}
-			toastr.error("{{ message }}");
-			{% elif category == 'warn' %}
-			toastr.warning("{{ message }}");
-			{% elif category == 'info' %}
-			toastr.info("{{ message }}");
-			{% elif category == 'success' %}
-			toastr.success("{{ message }}");
-			{% endif %}
-			console.log("executed b")
-			{% endfor -%}
-			{% endif %}
-			{% endwith %}
-		});
-        */
     </script>
 </body>
 <html>
