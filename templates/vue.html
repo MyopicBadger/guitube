@@ -298,12 +298,16 @@
                     });
                 },
                 addURL: function (event) {
+                    console.log("URL")
+                    console.log(vm.inputurl)
+                    console.log("Split")
+                    console.log(vm.inputurl.split(" "))
                     vm.added.push(vm.inputurl.split(" "))
                     $.post("{{ url_for('videoAddProper') }}", { videourl: vm.inputurl }, function (data) {
                         console.log(data)
                         for (item in vm.added) {
-                            console.log(item)
-                            toastr.success("Added " + item)
+                            console.log(vm.added[item])
+                            toastr.success("Added " + vm.added[item])
                         }
                         vm.added = []
                     });
