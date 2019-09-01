@@ -16,6 +16,7 @@ import time
 import uuid
 import hashlib
 import glob
+from PIL import Image
 
 import youtube_dl
 from flask import (
@@ -32,6 +33,7 @@ from flask import (
     url_for,
 )
 from youtube_dl import DownloadError
+from ffmpy import FFmpeg
 
 from imgur_downloader import (
     ImgurDownloader
@@ -369,6 +371,115 @@ def isPlayableFile(filename):
                     return True
     return False
 
+
+
+@app.route("/createthumbnails")
+def generateAllThumbs():
+    try:
+        print("Creating thumbnail directory")
+        os.mkdir(os.path.join(youtubelocation, "thumbs"))
+    except:
+        print("Couldn't create thumbnail directory")
+    for fname in os.listdir(youtubelocation):
+        tfile = os.path.join(youtubelocation, fname)
+        if os.path.isfile(tfile):
+            if fname.endswith(".mp4") or fname.endswith(".webm"):
+                print(generateThumbs(fname))
+        else:
+            print("Not file:"+ str(tfile))
+
+def getHalfDurationUnsafe(input):
+    infile = os.path.join(youtubelocation,input)
+    if os.path.isfile(infile):
+        #durationCommandString = "ffmpeg -i "+infile+" 2>&1 | grep Duration | awk '{print $2}' | tr -d , | awk -F ':' '{print ($3+$2*60+$1*3600)/2}'"
+        #print(durationCommandString)
+        #return executeCommand(durationCommandString)
+        return getLength(infile)/2
+    else:
+        return "10"
+
+def get_sec(time_str):
+    h, m, s = time_str.split(':')
+    return int(h) * 3600 + int(m) * 60 + int(s.split(".")[0])
+
+def getLength(filename):
+    result = subprocess.Popen(["ffprobe", filename],
+    stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    durationline = [x for x in result.stdout.readlines() if "Duration" in x.decode('utf8')][0].decode('utf8')
+    durationStamp = durationline.split(" ")[3].split(",")[0]
+    return get_sec(durationStamp)
+
+def generateThumbnailUnsafe(input):
+    print("generateThumbnailUnsafe got " + input)
+    infile = os.path.join(youtubelocation,input)
+    print("generateThumbnailUnsafe looking at: "+ infile)
+    print("generateThumbnailUnsafe isFile: " + str(os.path.isfile(infile)))
+    print("generateThumbnailUnsafe isPlayableFile: " + str(isPlayableFile(input)))
+    if os.path.isfile(infile): #and isPlayableFile(input):
+        print("generateThumbnailUnsafe is playable")
+        durationString = getHalfDurationUnsafe(input)
+        print(durationString)
+        print("generateThumbnailUnsafe duration "+ str(durationString))
+        outfile = os.path.join(youtubelocation, "thumbs", generateHashID(input) + ".jpg")
+        generateThumbsString = "ffmpeg -i "+infile+" -vcodec mjpeg -vframes 1 -an -f rawvideo -ss "+str(durationString)+" "+ outfile
+        print(generateThumbsString)
+        #return executeCommand(generateThumbsString)
+    else:
+        print("generateThumbnailUnsafe not playable")
+
+def generateThumbnailvlc(infile, outfile, prefix, position=10):
+    if os.path.isfile(infile):
+        generateThumbsString = "vlc '"+infile+"' --rate=1 --video-filter=scene --vout=dummy --aout=dummy --start-time="+str(position)+" --stop-time="+str(position+1)+" --scene-format=png --scene-ratio=1 --scene-prefix="+prefix+" --scene-path="+outfile+" vlc://quit"
+        return executeCommand(generateThumbsString)
+
+def generateThumbs(filename):
+    print("Generate Thumbs Got: " + filename)
+    #firstthumb = os.path.join(youtubelocation, "thumbs", filename + "01.jpg")
+    firstthumb = os.path.join(youtubelocation, "thumbs", filename + ".jpg")
+    infile = os.path.join(youtubelocation,filename)
+    if not os.path.isfile(firstthumb):
+        #generateThumbnailUnsafe(filename)
+        durationString = getHalfDurationUnsafe(filename)
+        print(durationString)
+        print("generateThumbnailUnsafe duration "+ str(durationString))
+        outfile = os.path.join(youtubelocation, "thumbs", filename + ".jpg")
+        ff = FFmpeg(
+            inputs={infile: None},
+            outputs={
+                outfile: [
+                    "-vcodec", "mjpeg", "-vframes", "1", "-an", "-f", "rawvideo", "-ss", str(durationString)
+                ]
+            },
+        )
+        #ff.run()
+        outfolder = os.path.join(youtubelocation, "thumbs")
+        prefix = filename
+        print(generateThumbnailvlc(infile, outfolder, prefix, durationString))
+        size = 128, 128
+        try:
+            im = Image.open(outfile)
+            im.thumbnail(size, Image.ANTIALIAS)
+            im.save(outfile, "JPEG")
+        except IOError:
+            print("cannot create thumbnail for '%s'" % infile)
+        #if not os.path.isfile(firstthumb):
+        #    ff = FFmpeg(
+        #    inputs={infile: None},
+        #    outputs={
+        #        outfile: ['-vf', 'fps=1/300']
+        #    },
+        #)
+        #ff.run()
+    else:
+        return "Thumbnails exist: " + str(infile)
+    return "Something went wrong..." + str(infile) + "  " + str(outfile)
+
+@app.route("/youtube/thumb/<filename>")
+def retrieveThumbnail(filename):
+    firstthumb = os.path.join("thumbs", filename + ".jpg")
+    return send_from_directory(youtubelocation,
+                               firstthumb, as_attachment=True)
+
 @app.route("/youtube/list.json")
 def getAllFilesList():
     global lastFileList
@@ -378,7 +489,12 @@ def getAllFilesList():
         lastFileList = fileList
         for fpath in fileList:
             fname = os.path.basename(fpath)
+            print(fname)
             if fname.endswith(".mp4") or fname.endswith(".webm"):
+                firstthumb = os.path.join(youtubelocation, "thumbs", generateHashID(fname) + ".jpg")
+                thumbsList = []
+                if os.path.isfile(firstthumb):
+                    thumbsList = glob.glob(os.path.join(youtubelocation, "thumbs", generateHashID(fname) + "*.jpg"))
                 folderView[fname] = dict(
                     [
                         ("status", "completed"),
@@ -387,6 +503,7 @@ def getAllFilesList():
                         ("playable", True),
                         ("id", "id_" + fname),
                         ("mode", "video"),
+                        ("thumbs", thumbsList)
                     ]
                 )
     end = time.time()
@@ -549,8 +666,9 @@ download_thread = threading.Thread(target=doDownload)
 
 if __name__ == "__main__":
     checkAndSetConfig()
-    print("Working Directory: " + executeCommand("pwd"))
-    print("Youtube-Dl Version: " + executeCommand("youtube-dl --version"))
+    generateAllThumbs()
+    #print("Working Directory: " + executeCommand("pwd"))
+    #print("Youtube-Dl Version: " + executeCommand("youtube-dl --version"))
     getDownloadQueue()
     app.secret_key = app_secret_key
     app.debug = debugmode

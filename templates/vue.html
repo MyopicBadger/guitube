@@ -165,6 +165,7 @@
                     <!-- COMPLETED -->
                     <li class="list-group-item list-group-item-success" v-if="item.status == 'completed'">
                         [[item.filename]]
+                        <img v-bind:src="'youtube/thumb/' + item.filename" />
                         <span class="float-right">
                             <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)' v-if="item.playable">
                                 <span class="fas fa-play" aria-hidden="true"></span>&nbsp;
