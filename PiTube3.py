@@ -423,7 +423,7 @@ def generateThumbnailUnsafe(input):
         outfile = os.path.join(youtubelocation, "thumbs", generateHashID(input) + ".jpg")
         generateThumbsString = "ffmpeg -i "+infile+" -vcodec mjpeg -vframes 1 -an -f rawvideo -ss "+str(durationString)+" "+ outfile
         print(generateThumbsString)
-        #return executeCommand(generateThumbsString)
+        return executeCommand(generateThumbsString)
     else:
         print("generateThumbnailUnsafe not playable")
 
@@ -454,7 +454,8 @@ def generateThumbs(filename):
         #ff.run()
         outfolder = os.path.join(youtubelocation, "thumbs")
         prefix = filename
-        print(generateThumbnailvlc(infile, outfolder, prefix, durationString))
+        #print(generateThumbnailvlc(infile, outfolder, prefix, durationString))
+        print(generateThumbnailUnsafe(infile))
         size = 128, 128
         try:
             im = Image.open(outfile)
