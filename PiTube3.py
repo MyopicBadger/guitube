@@ -1,10 +1,9 @@
-
 import configparser
 import copy
 import io
 import os
 
-#!/usr/bin/env python
+# !/usr/bin/env python
 # import secrets # upgrade to this
 import random
 import re
@@ -54,7 +53,7 @@ youtubelocation = "."
 dumbSaveFileName = "queue.temp"
 jsonSaveFileName = "queue.json"
 hostname = "0.0.0.0"
-portnumber = 5001
+portnumber = 5000
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
 downloadFormatString = "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
@@ -173,7 +172,7 @@ def dumbSave():
 
 @app.route("/")
 def rootRedirect():
-    return redirect(url_for("mainPageFunction"))
+    return redirect(url_for("videoList"))
 
 
 def executeCommand(command):
@@ -252,8 +251,8 @@ def videoRemove(id_num):
     for url in downloadQueue.keys():
         if str(downloadQueue[url]["id"]) == id_num:
             if (
-                downloadQueue[url]["status"] != "downloading"
-                or downloadQueue[url]["status"] != "finished"
+                    downloadQueue[url]["status"] != "downloading"
+                    or downloadQueue[url]["status"] != "finished"
             ):
                 del downloadQueue[url]
                 saveDownloadQueue()
@@ -268,8 +267,8 @@ def videoRestart(id_num):
     for url in downloadQueue.keys():
         if downloadQueue[url]["id"] == id_num:
             if (
-                downloadQueue[url]["status"] != "downloading"
-                or downloadQueue[url]["status"] != "finished"
+                    downloadQueue[url]["status"] != "downloading"
+                    or downloadQueue[url]["status"] != "finished"
             ):
                 downloadQueue[url]["status"] = "queued"
                 fireDownloadThread()
@@ -368,6 +367,7 @@ def isPlayableFile(filename):
                 if fullpath.endswith(".mp4") or fullpath.endswith(".webm"):
                     return True
     return False
+
 
 @app.route("/youtube/list.json")
 def getAllFilesList():
@@ -556,4 +556,3 @@ if __name__ == "__main__":
     app.debug = debugmode
     app.auto_reload = debugmode
     app.run(host=hostname, port=portnumber)
-
