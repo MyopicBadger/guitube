@@ -6,6 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href='/static/style.css'/>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon"/>
     <title>搬运组扒源工具</title>
     <!-- Bootstrap bootstrap-4.1.3-dist -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
@@ -15,56 +16,12 @@
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/toastr.min.js"></script>
     <link href="/static/css/toastr.min.css" rel="stylesheet"/>
-    <script type="text/javascript" src="http://www.mrdvh.info/static/js/lib/seajs/sea.js"></script>
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
 	  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
 	  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 	<![endif]-->
-
-    <script type="text/javascript">
-        var baseUrl = 'http://static.mrdvh.info/';
-        seajs.config({
-            base: baseUrl + "static/js/",
-            preload: [
-                baseUrl + "static/style/font-awesome/css/font-awesome.css",
-                baseUrl + "static/style/common.css",
-                baseUrl + "static/style/skin/base/app_setting.css",
-                baseUrl + "static/style/skin/win10.css",
-                baseUrl + "?share/commonJs",
-                "lib/jquery-1.8.0.min"
-            ]
-        });
-        seajs.use('app/src/api/default/main', function () {
-            $.addStyle('body .aui-outer .aui-title{border-bottom: 1px solid #eee;}');
-            $('.path-select').die('click').live('click', function () {
-                var parse = $.parseUrl(baseUrl);
-                G.webHost = baseUrl.replace(parse.relative, '/');
-                G.appHost = baseUrl + "?";
-                G.appRoot = baseUrl;
-                var imageExt = "png|jpg|bmp|gif|jpeg";
-                var config = {
-                    type: 'folder',            //选择类型；file|folder|all
-                    single: false,            //是否单个
-                    allowExt: imageExt,        //类型为文件时; 此配置生效; 多个用|隔开;
-                    firstPath: '{groupPath}:1/video/',        //默认进入的目录
-                    makeUrl: false,            //生成文件url
-
-                    //对话框配置
-                    title: "选择文件夹",        //标题文字
-                    width: 900,
-                    height: 500,
-                    top: '50%'
-                }
-                core.api.pathSelect(config, function (list) {
-                    var str = jsonEncode(list);
-                    str = str.replace('["{groupPath}:1', "").replace('"]', '');
-                    document.getElementById('videoPath').value = str;
-                });
-            });
-        });
-    </script>
 
     <script type="text/javascript">
         function getMaxCover() {
@@ -75,6 +32,8 @@
                 }
                 url = url.substring(url.lastIndexOf("/") + 1).replace("watch?v=", "").replace('&feature=youtu.be', '');
                 window.open("https://res.mrdvh.info/vi/" + url + "/maxresdefault.jpg");
+            } else {
+                toastr.error("视频链接有误，请检查后重试");
             }
         }
 
@@ -86,101 +45,74 @@
                 }
                 url = url.substring(url.lastIndexOf("/") + 1).replace("watch?v=", "").replace('&feature=youtu.be', '');
                 window.open("https://res.mrdvh.info/vi/" + url + "/hqdefault.jpg");
+            } else {
+                toastr.error("视频链接有误，请检查后重试");
             }
         }
 
-        function check() {
-            var url = $("#url").val();
-            if (url == null || url == "") {
-                alert("视频链接不能为空");
-                return false;
-            }
-
-            var path = $("#videoPath").val();
-            if (path == null || path == "") {
-                alert("保存的文件夹不能为空");
-                return false;
-            }
-            return true;
+        function openSelectFolder() {
+            var X = ($(window).width() - 900) / 2;
+            var Y = ($(window).height() - 598) / 2;
+            open('/youtube/selectfolder', '',
+                'fullscreen=1,location=0,menubar=0,resizable=0,scrollbars=0,' +
+                'status=0,toolbar=0,menu=0,width=900,height=598,left=' + X + ',top=' + Y);
         }
 
+        function setVideoPath(videoPath) {
+            vm.videoPaths = videoPath;
+        }
     </script>
 </head>
 
 <body>
-<br/>
-
+<div class="card-title" style="width: 100%;background:#5a6268">
+    <a class="panel-heading" href=""><b
+            style="font-size: 24px;color: white;line-height: 48px;height: 48px;padding-left: 2%">搬运组扒源工具</b></a>
+</div>
 <div class="container theme-showcase" role="main" id="mainpage">
-
-    <div class="input-group1 mb-3">
-        <input type="text" class="form-control1" placeholder="视频链接" aria-label="请输入视频链接"
-               aria-describedby="button-addon2"
-               v-model="inputurl">
-        <div style="display: flex;justify-content: space-between;margin-top: 10px;width: 100%;">
-            <div style="width: 49.5%;margin-right: 0.5%;display: flex;justify-content: space-between;">
-                <input class="form-control" id="videoPath" name="videoPaths" placeholder="保存的文件夹"
-                       type="text" readonly="readonly" style="background-color: white"/>
-                <button type="button" class="btn btn-secondary path-select">选择文件夹</button>
-            </div>
-            <div style="width: 49.5%;margin-left: 0.5%">
-                <input class="form-control" id="videoName" name="videoNames" placeholder="保存的文件名" type="text"
-                       style="width: 100%"/>
-            </div>
+    <div class="card" style="width: 100%">
+        <div class="card-title" style="background:#5a6268">
+            <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒源</b>
         </div>
+        <div class="card-body">
+            <input type="text" class="form-control" placeholder="视频链接" aria-label="请输入视频链接"
+                   aria-describedby="button-addon2"
+                   v-model="inputurl">
+            <div style="display: flex;justify-content: space-between;width: 100%;margin-top: 1%;">
+                <div style="width: 49.5%;margin-right: 0.5%;display: flex;justify-content: space-between;">
+                    <input class="form-control" id="videoPath" placeholder="保存的文件夹"
+                           aria-label="请选择保存的文件夹" type="text" readonly="readonly" style="background-color: white"
+                           v-model="videoPaths"/>
+                    <button type="button" class="btn btn-secondary"
+                            onClick="openSelectFolder()">
+                        选择文件夹
+                    </button>
+                </div>
+                <div style="width: 49.5%;margin-left: 0.5%">
+                    <input class="form-control" id="videoName" placeholder="保存的文件名" type="text"
+                           aria-label="请输入保存的文件名"
+                           v-model="videoNames" style="width: 100%"/>
+                </div>
+            </div>
 
-        <div class="input-group" style="margin-top: 1%">
-            <button class="btn btn-secondary" type="button" id="button-addon2" v-on:click="addURL"><span
-                    class="fas fa-download"
-                    aria-hidden="true"></span> 开始扒源
-            </button>
+            <div class="input-group" style="margin-top: 1%">
+                <button class="btn btn-secondary" type="button" id="button-addon2" v-on:click="addURL"><span
+                        class="fas fa-download"
+                        aria-hidden="true"></span> 开始扒源
+                </button>
+            </div>
         </div>
     </div>
-    {#    <div class="card mb-3">#}
-    {#        <div class="btn-group" role="group" aria-label="Secondary Controls">#}
-    {#            <button type="button" class="btn btn-secondary" v-on:click="setPage('download')"#}
-    {#                    v-bind:class="{ active: isPage('download') }">#}
-    {#                <span class="fas fa-file-download" aria-hidden="true"></span> Downloads#}
-    {#            </button>#}
-    {#            <button type="button" class="btn btn-secondary" v-on:click="setPage('folder')"#}
-    {#                    v-bind:class="{ active: isPage('folder') }">#}
-    {#                <span class="fas fa-archive" aria-hidden="true"></span> Folder#}
-    {#            </button>#}
-    {#            <button type="button" class="btn btn-secondary" v-on:click="setPage('video')"#}
-    {#                    v-bind:class="{ active: isPage('video') }">#}
-    {#                <span class="fas fa-video" aria-hidden="true"></span> Video#}
-    {#            </button>#}
-    {##}
-    {#            <div class="btn-group dropdown">#}
-    {#                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"#}
-    {#                        data-toggle="dropdown"#}
-    {#                        aria-haspopup="true" aria-expanded="false">#}
-    {#                    <span class="fas fa-cogs" aria-hidden="true"></span> Advanced Options#}
-    {#                </button>#}
-    {#                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">#}
-    {#                    <a class="dropdown-item" v-on:click='refresh' href="#">#}
-    {#                        <span class="fas fa-sync" aria-hidden="true"></span> Refresh#}
-    {#                    </a>#}
-    {#                    <a class="dropdown-item" v-on:click='save' href="#">#}
-    {#                        <span class="fas fa-save" aria-hidden="true"></span> Force Save#}
-    {#                    </a>#}
-    {#                    <a class="dropdown-item" v-on:click='start' href="#">#}
-    {#                        <span class="fas fa-play" aria-hidden="true"></span> Force Start#}
-    {#                    </a>#}
-    {#                    <a class="dropdown-item" v-on:click='clearcompleted' href="#">#}
-    {#                        <span class="fas fa-trash" aria-hidden="true"></span> Clear Completed#}
-    {#                    </a>#}
-    {#                    <a class="dropdown-item" v-on:click='shutdown' href="#">#}
-    {#                        <span class="fas fa-power-off" aria-hidden="true"></span> End Program#}
-    {#                    </a>#}
-    {#                </div>#}
-    {#            </div>#}
-    {#        </div>#}
-    {#    </div>#}
 
-    <div class="card mb-3">
-        <div class="progress">
-            <div id="progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
-                 aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" v-bind:style="progressStyle"></div>
+    <div class="card" style="width: 100%;margin-top: 2%;">
+        <div class="card-title" style="background:#5a6268">
+            <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒封面图</b>
+        </div>
+        <div class="card-body">
+            <p>获取封面图功能只支持油管，有其他的网站需要请私聊我</p>
+            <p>使用方法：<br/>1：填写油管视频的链接<br/>2：点击下面的俩按钮<br/><b style="font-size: 16px">如果高清版封面没有图片，请点击低清版。</b></p>
+            <button class="btn btn-secondary" onclick="getMaxCover()">获取高清版封面图</button>
+            <button class="btn btn-secondary" onclick="getHqCover()">获取低清版封面图</button>
         </div>
     </div>
 
@@ -193,13 +125,17 @@
     </div>
 
 
-    <div class="card mb-3" id="mainQueue" v-if="downloadQueue && page=='download'">
-        <ul class="list-group">
-            <template v-for="item in downloadQueue">
-                <!-- ERROR -->
-                <li class="list-group-item list-group-item-danger" v-if="item.status == 'error'">
-                    [[item.url]] ([[item.filename]])
-                    <span class="float-right">
+    <div class="card" id="mainQueue" v-if="downloadQueue && page=='download'" style="margin-top: 2%">
+        <div class="card-title" style="background:#5a6268">
+            <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒源任务列表</b>
+        </div>
+        <div class="card-body">
+            <ul class="list-group">
+                <template v-for="item in downloadQueue">
+                    <!-- ERROR -->
+                    <li class="list-group-item list-group-item-danger" v-if="item.status == 'error'">
+                        任务:[[item.url]] ([[item.filename]]) - 下载失败
+                        <span class="float-right">
                             <a class="btn btn-secondary" href="#" v-on:click='rerunQueue(item.id)'>
                                 <span class="fas fa-sync" aria-hidden="true"></span>&nbsp;
                             </a>
@@ -207,47 +143,46 @@
                                 <span class="fas fa-trash" aria-hidden="true"></span>
                             </a>
                         </span>
-                    <br/>
-                    [[item.error]]
-                </li>
-                <!-- FINISHED -->
-                <li class="list-group-item list-group-item-success" v-else-if="item.status == 'finished'">
-                    [[item.canon]] - Converting...
-                </li>
-                <!-- COMPLETED -->
-                <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
-                    [[safeName(item.url)]]
-                    <span class="float-right">
-                            <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)' v-if="item.playable">
-                                <span class="fas fa-play" aria-hidden="true"></span>&nbsp;
-                            </a>
+                        <br/>
+                        错误信息:[[item.error]]
+                    </li>
+                    <!-- FINISHED -->
+                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'finished'">
+                        任务:[[item.filename]] - 转码中...
+                    </li>
+                    <!-- COMPLETED -->
+                    <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
+                        任务:[[item.filename]] - 已完成
+                        <span class="float-right">
                             <a class="btn btn-secondary" href="#" v-on:click='deleteQueue(item.id)'>
                                 <span class="fas fa-trash" aria-hidden="true"></span>
                             </a>
                         </span>
-                </li>
-                <!-- DOWNLOADING -->
-                <li class="list-group-item list-group-item-info" v-else-if="item.status == 'downloading'">[[item.canon]]
-                    (<span id="db">[[formatBytes(item.dbytes)]]</span>
-                    / <span id="tb">[[formatBytes(item.tbytes)]]</span> @ <span
-                            id="sb">[[formatBytes(item.speed)]]</span>s)
-                    - <span id="pc">[[formatPercent(item.percent)]]</span></li>
-                <!-- QUEUED -->
-                <li class="list-group-item list-group-item-info" v-else-if="item.status == 'queued'">[[item.url]]
-                    <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span
-                            class="fas fa-trash"
-                            aria-hidden="true"></span></a></li>
-                <!-- OTHER -->
-                <li class="list-group-item list-group-item-danger" v-else>[[item.url]]
-                    ([[item.filename]]) - RENDER ERROR
-                </li>
-            </template>
-        </ul>
-
+                    </li>
+                    <!-- DOWNLOADING -->
+                    <li class="list-group-item list-group-item-info" v-else-if="item.status == 'downloading'">
+                        任务:[[item.filename]]- 下载中<br/>
+                        已下载:<span id="db">[[formatBytes(item.dbytes)]]</span>&nbsp;&nbsp;总大小:
+                        <span id="tb">[[formatBytes(item.tbytes)]]</span>&nbsp;&nbsp;下载速度:<span
+                            id="sb">[[formatBytes(item.speed)]]</span>/S&nbsp;&nbsp;进度:
+                        <span id="pc">[[formatPercent(item.percent)]]</span></li>
+                    <!-- QUEUED -->
+                    <li class="list-group-item list-group-item-info" v-else-if="item.status == 'queued'">
+                        任务:[[item.url]] - 数据查询中
+                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span
+                                class="fas fa-trash"
+                                aria-hidden="true"></span></a></li>
+                    <!-- OTHER -->
+                    <li class="list-group-item list-group-item-danger" v-else>[[item.url]]
+                        任务:[[item.filename]] - 渲染错误
+                    </li>
+                </template>
+            </ul>
+        </div>
     </div>
     <div class="card mb-3" v-else-if="page=='download'">
         <div class="card-body">
-            No Files in Queue
+            暂无扒源任务
         </div>
     </div>
 
@@ -314,6 +249,8 @@
             downloadQueue: {},
             folderView: {},
             inputurl: "",
+            videoPaths: "",
+            videoNames: "",
             added: [],
             progressStyle: {width: '0%'},
             video: "",
@@ -404,20 +341,36 @@
                 });
             },
             addURL: function (event) {
-                console.log("URL")
-                console.log(vm.inputurl)
-                console.log("Split")
-                console.log(vm.inputurl.split(" "))
-                vm.added.push(vm.inputurl.split(" "))
-                $.post("{{ url_for('videoAddProper') }}", {videourl: vm.inputurl}, function (data) {
+                if (vm.inputurl == null || vm.inputurl == "") {
+                    toastr.error("视频链接不能为空");
+                    return;
+                }
+                if (vm.videoPaths == null || vm.videoPaths == "") {
+                    toastr.error("保存的文件夹不能为空");
+                    return false;
+                }
+                console.log("URL");
+                console.log(vm.inputurl);
+                console.log(vm.videoPaths);
+                console.log(vm.videoNames);
+                console.log("Split");
+                console.log(vm.inputurl.split(" "));
+                vm.added.push(vm.inputurl.split(" "));
+                $.post("{{ url_for('videoAddProper') }}", {
+                    videourl: vm.inputurl,
+                    videoPaths: vm.videoPaths,
+                    videoNames: vm.videoNames
+                }, function (data) {
                     console.log(data)
                     for (item in vm.added) {
                         console.log(vm.added[item])
-                        toastr.success("Added " + vm.added[item])
+                        toastr.success("扒源任务添加成功")
                     }
                     vm.added = []
                 });
                 vm.inputurl = "";
+                vm.videoPaths = "";
+                vm.videoNames = "";
             },
             deleteQueue: function (id) {
                 console.log(id)
@@ -425,7 +378,7 @@
                 console.log(videoName)
                 $.get("/youtube/remove/" + id, function (data) {
                     if (data == "OK") {
-                        toastr.success("Removed " + videoName)
+                        toastr.success("已删除扒源任务")
                         vm.refresh()
                     }
                 });

@@ -56,7 +56,7 @@ hostname = "0.0.0.0"
 portnumber = 5000
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
-downloadFormatString = "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+downloadFormatString = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
 os_string = "Linux"
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -303,6 +303,8 @@ def videoAddProper():
         global download_thread
         global downloadQueue
         url = request.form["videourl"]
+        path = request.form["videoPaths"]
+        name = request.form["videoNames"]
         for subURL in url.split():
             idCounter = idCounter + 1
             downloadQueue[subURL] = dict(
@@ -311,6 +313,8 @@ def videoAddProper():
                     ("url", subURL),
                     ("id", "id_" + generateNewID()),
                     ("mode", "video"),
+                    ("path", path),
+                    ("name", name)
                 ]
             )
         saveDownloadQueue()
@@ -357,6 +361,11 @@ def forceSave():
 def videoList():
     global downloadQueue
     return render_template("vue.html")
+
+
+@app.route("/youtube/selectfolder")
+def selectFolder():
+    return render_template("SelectFolder.html")
 
 
 def isPlayableFile(filename):
@@ -487,10 +496,17 @@ def doDownload():
         "prefer_ffmpeg": True,
         "restrictfilenames": True,
         "format": downloadFormatString,
+        "outtmpl": ""
     }
     nextUrl = getNextQueuedItem()
     if nextUrl != "NONE":
         currentDownloadUrl = nextUrl["url"]
+        path = nextUrl["path"]
+        name = nextUrl["name"]
+        if name != "NONE" and name != "":
+            ydl_opts['outtmpl'] = path + name
+        else:
+            ydl_opts['outtmpl'] = path + '%(title)s-%(id)s.%(ext)s'
         print("proceeding to " + currentDownloadUrl)
         try:
             # there's a bug where this will error if your download folder is inside your application folder
