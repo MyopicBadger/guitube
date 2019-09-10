@@ -2,7 +2,7 @@
 
 A simple web frontend to download youtube videos and imgur albums using youtube-dl (and imgur-dl)
 
-![alt text](https://github.com/MyopicBadger/guitube/raw/master/doc/example.png "Guitube in action")
+![alt text](https://github.com/MRDHR/guitube/blob/master/doc/example.png "Guitube in action")
 
 Formerly known (to me at least) as PiTube, because it started as a program I wrote to run on a RaspberryPi.
 
