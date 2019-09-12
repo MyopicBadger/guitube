@@ -186,7 +186,7 @@ def executeCommand(command):
 
 class MyLogger(object):
     def debug(self, msg):
-        pass
+        print(msg)
 
     def warning(self, msg):
         print(msg)
@@ -278,9 +278,7 @@ def videoRestart(id_num):
 
 @app.route("/youtube/resume")
 def forceStart():
-    global loopBreaker
     global terminateFlag
-    loopBreaker = 10
     terminateFlag = 0
     fireDownloadThread()
     return "OK"
@@ -321,8 +319,6 @@ def videoAddProper():
 def shutdownAll():
     global terminateFlag
     global downloadQueue
-    global loopBreaker
-    loopBreaker = -1
     terminateFlag += 1
     saveDownloadQueue()
     shutdown_server()
@@ -457,28 +453,9 @@ def getAllErrors():
     return True
 
 
-def imgurOnDownloadHook(index, httpUrl, filepath):
-    global currentDownloadPercent
-    print(str(downloadQueue))
-    print("Download Hook Fired for " + str(index))
-    currentDownloadPercent = (int(index) * 100) / int(imgurAlbumSize)
-    downloadQueue[currentDownloadUrl]["percent"] = currentDownloadPercent
-    downloadQueue[currentDownloadUrl]["filename"] = filepath
-    downloadQueue[currentDownloadUrl]["tbytes"] = imgurAlbumSize
-    downloadQueue[currentDownloadUrl]["dbytes"] = index
-    downloadQueue[currentDownloadUrl]["time"] = "?"
-    downloadQueue[currentDownloadUrl]["speed"] = currentDownloadPercent
-    downloadQueue[currentDownloadUrl]["canon"] = currentDownloadUrl
-    downloadQueue[currentDownloadUrl]["status"] = "?"
-
-
-loopBreaker = 10
-
-
 def doDownload():
     global downloadQueue
     global currentDownloadUrl
-    global loopBreaker
     global terminateFlag
     global imgurAlbumSize
     print(downloadFormatString)
@@ -503,30 +480,18 @@ def doDownload():
         try:
             # there's a bug where this will error if your download folder is inside your application folder
             os.chdir(youtubelocation)
-            match = re.match(
-                "(https?)://(www\.)?(i\.|m\.)?imgur\.com/(a/|gallery/|r/)?/?(\w*)/?(\w*)(#[0-9]+)?(.\w*)?",  # NOQA
-                currentDownloadUrl,
-            )
             nextUrl["mode"] = "youtube"
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([nextUrl["url"]])
-                ydl.extract_info([nextUrl["url"]])
             downloadQueue[nextUrl["url"]]["status"] = "completed"
             downloadQueue[nextUrl["url"]]["playable"] = queryVideo(
                 downloadQueue[nextUrl["url"]]["filename"]
             )
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
-            loopBreaker = 10
         except Exception as e:
             nextUrl["status"] = "error"
             nextUrl["error"] = e
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
-        nextUrl = getNextQueuedItem()
-        if nextUrl != "NONE" and loopBreaker > 0:
-            loopBreaker = loopBreaker - 1
-            print("loopBreaker:" + str(loopBreaker))
-            if terminateFlag == 0:
-                doDownload()
     else:
         print("Nothing to do - Finishing Process")
 
