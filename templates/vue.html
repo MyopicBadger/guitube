@@ -116,15 +116,6 @@
         </div>
     </div>
 
-    <div class="card mb-3" v-if="page=='video'">
-        <div class="embed-responsive embed-responsive-16by9">
-            <video controls v-if="video" :src="video">
-                <p>Your browser doesn't support HTML5 video. </p>
-            </video>
-        </div>
-    </div>
-
-
     <div class="card" id="mainQueue" v-if="downloadQueue && page=='download'" style="margin-top: 2%">
         <div class="card-title" style="background:#5a6268">
             <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒源任务列表</b>
@@ -180,46 +171,8 @@
             </ul>
         </div>
     </div>
-    <div class="card mb-3" v-else-if="page=='download'">
-        <div class="card-body">
-            暂无扒源任务
-        </div>
-    </div>
+</div>
 
-    <div class="card mb-3" id="mainQueue" v-if="folderView  && page=='folder'">
-        <div class="card-header">
-            <form class="form-inline">
-                <div class="input-group">
-                    <input class="form-control" id="searchEntry" type="search" placeholder="Search" aria-label="Search"
-                           v-model="search">
-                    <div class="input-group-append">
-                        <a class="btn btn-outline-secondary" type="button" v-on:click='clearSearch()'>
-                            <span class="fas fa-times" aria-hidden="true"></span>
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
-        <ul class="list-group">
-            <template v-for="item in filteredFolderView">
-                <!-- COMPLETED -->
-                <li class="list-group-item list-group-item-success" v-if="item.status == 'completed'">
-                    [[item.filename]]
-                    <span class="float-right">
-                            <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)' v-if="item.playable">
-                                <span class="fas fa-play" aria-hidden="true"></span>&nbsp;
-                            </a>
-                        </span>
-                </li>
-                <!-- OTHER -->
-                <li class="list-group-item list-group-item-danger" v-else>[[item.url]]
-                    ([[item.filename]]) - RENDER ERROR
-                </li>
-            </template>
-        </ul>
-    </div>
-</div>
-</div>
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="static/js/jquery.min.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->

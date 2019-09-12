@@ -31,10 +31,7 @@ from flask import (
     url_for,
 )
 from youtube_dl import DownloadError
-
-from imgur_downloader import (
-    ImgurDownloader
-)  # https://github.com/jtara1/imgur_downloader
+from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 
@@ -70,9 +67,9 @@ dumbSaveFile = os.path.join(
 idCounter = 0
 terminateFlag = 0
 lastFilename = ""
-download_thread = 0
 configfile_name = "config.ini"
 commandMapping = {"ls -1": "Get-ChildItem -Name", "pwd": "Get-Location"}
+downloadThreadSize = 5
 
 
 def getCommand(commandString):
@@ -152,6 +149,7 @@ def generateHashID(stringToHash):
 
 
 def saveDownloadQueue():
+    lock.acquire()
     global downloadQueue
     dumbSave()
     try:
@@ -162,6 +160,7 @@ def saveDownloadQueue():
     except TypeError:
         for url in downloadQueue.keys():
             downloadQueue[url]["status"] == str(downloadQueue[url]["status"])
+    lock.release()
 
 
 def dumbSave():
@@ -200,31 +199,34 @@ def my_hook(d):
     global currentDownloadPercent
     global downloadQueue
     global lastFilename
-    if d["status"] == "finished":
-        print("Done downloading, now converting ...")
-        os.utime(d.get("filename", ""))
-    try:
-        if lastFilename != d["key"]:
-            iffyPrint(d, "filename")
-        lastFilename = d["key"]
-        print("lastFilename:" + lastFilename)
-    except:
-        pass
 
-    if d["status"] == "downloading":
-        currentDownloadPercent = (int(d.get("downloaded_bytes", 0)) * 100) / int(
-            d.get("total_bytes", d.get("downloaded_bytes", 100))
-        )
-        downloadQueue[currentDownloadUrl]["filename"] = d.get("filename", "?")
-        downloadQueue[currentDownloadUrl]["tbytes"] = d.get(
-            "total_bytes", d.get("downloaded_bytes", 0)
-        )
-        downloadQueue[currentDownloadUrl]["dbytes"] = d.get("downloaded_bytes", 0)
-        downloadQueue[currentDownloadUrl]["time"] = d.get("elapsed", "?")
-        downloadQueue[currentDownloadUrl]["speed"] = d.get("speed", 0)
-    downloadQueue[currentDownloadUrl]["canon"] = d.get("filename", currentDownloadUrl)
-    downloadQueue[currentDownloadUrl]["status"] = d.get("status", "?")
-    downloadQueue[currentDownloadUrl]["percent"] = currentDownloadPercent
+    for url in downloadQueue.keys():
+        if str(downloadQueue[url]["filename"]) == d.get("filename", "?"):
+            if d["status"] == "finished":
+                print("Done downloading, now converting ...")
+                os.utime(d.get("filename", ""))
+            try:
+                if lastFilename != d["key"]:
+                    iffyPrint(d, "filename")
+                lastFilename = d["key"]
+                print("lastFilename:" + lastFilename)
+            except:
+                pass
+
+            if d["status"] == "downloading":
+                currentDownloadPercent = (int(d.get("downloaded_bytes", 0)) * 100) / int(
+                    d.get("total_bytes", d.get("downloaded_bytes", 100))
+                )
+                downloadQueue[currentDownloadUrl]["filename"] = d.get("filename", "?")
+                downloadQueue[currentDownloadUrl]["tbytes"] = d.get(
+                    "total_bytes", d.get("downloaded_bytes", 0)
+                )
+                downloadQueue[currentDownloadUrl]["dbytes"] = d.get("downloaded_bytes", 0)
+                downloadQueue[currentDownloadUrl]["time"] = d.get("elapsed", "?")
+                downloadQueue[currentDownloadUrl]["speed"] = d.get("speed", 0)
+            downloadQueue[currentDownloadUrl]["canon"] = d.get("filename", currentDownloadUrl)
+            downloadQueue[currentDownloadUrl]["status"] = d.get("status", "?")
+            downloadQueue[currentDownloadUrl]["percent"] = currentDownloadPercent
 
 
 def iffyPrint(d, key):
@@ -246,7 +248,6 @@ def getVersion():
 
 @app.route("/youtube/remove/<id_num>")
 def videoRemove(id_num):
-    global download_thread
     global downloadQueue
     for url in downloadQueue.keys():
         if str(downloadQueue[url]["id"]) == id_num:
@@ -262,7 +263,6 @@ def videoRemove(id_num):
 
 @app.route("/youtube/retry/<id_num>")
 def videoRestart(id_num):
-    global download_thread
     global downloadQueue
     for url in downloadQueue.keys():
         if downloadQueue[url]["id"] == id_num:
@@ -287,20 +287,13 @@ def forceStart():
 
 
 def fireDownloadThread():
-    global download_thread
-    if download_thread.is_alive():
-        print("Thread already running")
-    else:
-        print("Thread starting")
-        download_thread = threading.Thread(target=doDownload)
-        download_thread.start()
+    executor.submit(doDownload())
 
 
 @app.route("/youtube/add", methods=["POST", "GET"])
 def videoAddProper():
     global idCounter
     if request.method == "POST":
-        global download_thread
         global downloadQueue
         url = request.form["videourl"]
         path = request.form["videoPaths"]
@@ -332,7 +325,6 @@ def shutdownAll():
     loopBreaker = -1
     terminateFlag += 1
     saveDownloadQueue()
-    download_thread._stop()
     shutdown_server()
     return redirect("/youtube", code=302)
 
@@ -449,9 +441,9 @@ def getNextStartedItem():
 
 def getNextQueuedItem():
     saveDownloadQueue()
-    nextItem = getNextStartedItem()
-    if nextItem != "NONE":
-        return nextItem
+    # nextItem = getNextStartedItem()
+    # if nextItem != "NONE":
+    #     return nextItem
     for url in downloadQueue.keys():
         if downloadQueue[url]["status"] == "queued":
             return downloadQueue[url]
@@ -515,29 +507,14 @@ def doDownload():
                 "(https?)://(www\.)?(i\.|m\.)?imgur\.com/(a/|gallery/|r/)?/?(\w*)/?(\w*)(#[0-9]+)?(.\w*)?",  # NOQA
                 currentDownloadUrl,
             )
-            if match:
-                downloadQueue[currentDownloadUrl]["status"] = "downloading"
-                downloadQueue[currentDownloadUrl]["mode"] = "imgur"
-                print("Matched Regex")
-                downloader = ImgurDownloader(currentDownloadUrl, youtubelocation)
-                print("Downloader created...")
-                print("This albums has {} images".format(downloader.num_images()))
-                imgurAlbumSize = downloader.num_images()
-                downloader.on_image_download(imgurOnDownloadHook)
-
-                resultsTuple = downloader.save_images()
-
-                print("Saved!")
-                print(resultsTuple)
-                downloadQueue[currentDownloadUrl]["status"] = "completed"
-            if not match:
-                nextUrl["mode"] = "youtube"
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([nextUrl["url"]])
-                downloadQueue[nextUrl["url"]]["status"] = "completed"
-                downloadQueue[nextUrl["url"]]["playable"] = queryVideo(
-                    downloadQueue[nextUrl["url"]]["filename"]
-                )
+            nextUrl["mode"] = "youtube"
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([nextUrl["url"]])
+                ydl.extract_info([nextUrl["url"]])
+            downloadQueue[nextUrl["url"]]["status"] = "completed"
+            downloadQueue[nextUrl["url"]]["playable"] = queryVideo(
+                downloadQueue[nextUrl["url"]]["filename"]
+            )
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
             loopBreaker = 10
         except Exception as e:
@@ -561,7 +538,8 @@ def shutdown_server():
     func()
 
 
-download_thread = threading.Thread(target=doDownload)
+executor = ThreadPoolExecutor(max_workers=downloadThreadSize)
+lock = threading.Lock()
 
 if __name__ == "__main__":
     checkAndSetConfig()
