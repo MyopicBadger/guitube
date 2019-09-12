@@ -1,8 +1,12 @@
 # guitube
 
-A simple web frontend to download youtube videos and imgur albums using youtube-dl (and imgur-dl)
+配套youtube-dl使用的网页和服务端
+后台部分由python3+flask实现，前端是vue。已经新增requirement.txt文件，可直接通过宝塔、gunicorn启动。
+我当前测试的版本是3.6.8，正常情况下3.6或者3.7均可使用。
 
-![alt text](https://github.com/MyopicBadger/guitube/raw/master/doc/example.png "Guitube in action")
+![alt text](https://github.com/MRDHR/guitube/blob/master/doc/example.png "Guitube in action")
+
+以下为原fork写的文章，大部分功能已经隐藏。
 
 Formerly known (to me at least) as PiTube, because it started as a program I wrote to run on a RaspberryPi.
 
