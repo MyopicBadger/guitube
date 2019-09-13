@@ -1,10 +1,11 @@
+# !/usr/bin/env python
+# import secrets # upgrade to this
+# -*- coding: UTF-8 -*-
 import configparser
 import copy
 import io
 import os
 
-# !/usr/bin/env python
-# import secrets # upgrade to this
 import random
 import re
 import shlex
@@ -49,7 +50,7 @@ imgurAlbumSize = 0
 youtubelocation = "."
 dumbSaveFileName = "queue.temp"
 jsonSaveFileName = "queue.json"
-hostname = "0.0.0.0"
+hostname = "127.0.0.1"
 portnumber = 5000
 debugmode = True
 app_secret_key = "notEvenVaguelySecret"
@@ -66,7 +67,6 @@ dumbSaveFile = os.path.join(
 )
 idCounter = 0
 terminateFlag = 0
-lastFilename = ""
 configfile_name = "config.ini"
 commandMapping = {"ls -1": "Get-ChildItem -Name", "pwd": "Get-Location"}
 downloadThreadSize = 5
@@ -195,38 +195,34 @@ class MyLogger(object):
         print(msg)
 
 
-def my_hook(d):
-    global currentDownloadPercent
-    global downloadQueue
-    global lastFilename
+class MyHook:
+    def __init__(self, tid):
+        self.tid = tid
 
-    for url in downloadQueue.keys():
-        if str(downloadQueue[url]["filename"]) == d.get("filename", "?"):
-            if d["status"] == "finished":
-                print("Done downloading, now converting ...")
-                os.utime(d.get("filename", ""))
-            try:
-                if lastFilename != d["key"]:
-                    iffyPrint(d, "filename")
-                lastFilename = d["key"]
-                print("lastFilename:" + lastFilename)
-            except:
-                pass
+    def hook(self, d):
+        global currentDownloadPercent
+        global downloadQueue
+        for url in downloadQueue.keys():
+            if str(downloadQueue[url]["id"]) == self.tid:
 
-            if d["status"] == "downloading":
-                currentDownloadPercent = (int(d.get("downloaded_bytes", 0)) * 100) / int(
-                    d.get("total_bytes", d.get("downloaded_bytes", 100))
-                )
-                downloadQueue[currentDownloadUrl]["filename"] = d.get("filename", "?")
-                downloadQueue[currentDownloadUrl]["tbytes"] = d.get(
-                    "total_bytes", d.get("downloaded_bytes", 0)
-                )
-                downloadQueue[currentDownloadUrl]["dbytes"] = d.get("downloaded_bytes", 0)
-                downloadQueue[currentDownloadUrl]["time"] = d.get("elapsed", "?")
-                downloadQueue[currentDownloadUrl]["speed"] = d.get("speed", 0)
-            downloadQueue[currentDownloadUrl]["canon"] = d.get("filename", currentDownloadUrl)
-            downloadQueue[currentDownloadUrl]["status"] = d.get("status", "?")
-            downloadQueue[currentDownloadUrl]["percent"] = currentDownloadPercent
+                if d["status"] == "finished":
+                    print("Done downloading, now converting ...")
+                    os.utime(d.get("filename", ""))
+
+                if d["status"] == "downloading":
+                    currentDownloadPercent = (int(d.get("downloaded_bytes", 0)) * 100) / int(
+                        d.get("total_bytes", d.get("downloaded_bytes", 100))
+                    )
+                    downloadQueue[url]["filename"] = d.get("filename", "?")
+                    downloadQueue[url]["tbytes"] = d.get(
+                        "total_bytes", d.get("downloaded_bytes", 0)
+                    )
+                    downloadQueue[url]["dbytes"] = d.get("downloaded_bytes", 0)
+                    downloadQueue[url]["time"] = d.get("elapsed", "?")
+                    downloadQueue[url]["speed"] = d.get("speed", 0)
+                downloadQueue[url]["canon"] = d.get("filename", url)
+                downloadQueue[url]["status"] = d.get("status", "?")
+                downloadQueue[url]["percent"] = currentDownloadPercent
 
 
 def iffyPrint(d, key):
@@ -278,9 +274,7 @@ def videoRestart(id_num):
 
 @app.route("/youtube/resume")
 def forceStart():
-    global loopBreaker
     global terminateFlag
-    loopBreaker = 10
     terminateFlag = 0
     fireDownloadThread()
     return "OK"
@@ -321,8 +315,6 @@ def videoAddProper():
 def shutdownAll():
     global terminateFlag
     global downloadQueue
-    global loopBreaker
-    loopBreaker = -1
     terminateFlag += 1
     saveDownloadQueue()
     shutdown_server()
@@ -457,41 +449,22 @@ def getAllErrors():
     return True
 
 
-def imgurOnDownloadHook(index, httpUrl, filepath):
-    global currentDownloadPercent
-    print(str(downloadQueue))
-    print("Download Hook Fired for " + str(index))
-    currentDownloadPercent = (int(index) * 100) / int(imgurAlbumSize)
-    downloadQueue[currentDownloadUrl]["percent"] = currentDownloadPercent
-    downloadQueue[currentDownloadUrl]["filename"] = filepath
-    downloadQueue[currentDownloadUrl]["tbytes"] = imgurAlbumSize
-    downloadQueue[currentDownloadUrl]["dbytes"] = index
-    downloadQueue[currentDownloadUrl]["time"] = "?"
-    downloadQueue[currentDownloadUrl]["speed"] = currentDownloadPercent
-    downloadQueue[currentDownloadUrl]["canon"] = currentDownloadUrl
-    downloadQueue[currentDownloadUrl]["status"] = "?"
-
-
-loopBreaker = 10
-
-
 def doDownload():
     global downloadQueue
     global currentDownloadUrl
-    global loopBreaker
     global terminateFlag
     global imgurAlbumSize
     print(downloadFormatString)
-    ydl_opts = {
-        "logger": MyLogger(),
-        "progress_hooks": [my_hook],
-        "prefer_ffmpeg": True,
-        "restrictfilenames": True,
-        "format": downloadFormatString,
-        "outtmpl": ""
-    }
     nextUrl = getNextQueuedItem()
     if nextUrl != "NONE":
+        ydl_opts = {
+            "logger": MyLogger(),
+            "progress_hooks": [MyHook(downloadQueue[nextUrl["url"]]["id"]).hook],
+            "prefer_ffmpeg": True,
+            "restrictfilenames": False,
+            "format": downloadFormatString,
+            "outtmpl": ""
+        }
         currentDownloadUrl = nextUrl["url"]
         path = nextUrl["path"]
         name = nextUrl["name"]
@@ -503,28 +476,20 @@ def doDownload():
         try:
             # there's a bug where this will error if your download folder is inside your application folder
             os.chdir(youtubelocation)
-            match = re.match(
-                "(https?)://(www\.)?(i\.|m\.)?imgur\.com/(a/|gallery/|r/)?/?(\w*)/?(\w*)(#[0-9]+)?(.\w*)?",  # NOQA
-                currentDownloadUrl,
-            )
             nextUrl["mode"] = "youtube"
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([nextUrl["url"]])
-                ydl.extract_info([nextUrl["url"]])
             downloadQueue[nextUrl["url"]]["status"] = "completed"
             downloadQueue[nextUrl["url"]]["playable"] = queryVideo(
                 downloadQueue[nextUrl["url"]]["filename"]
             )
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
-            loopBreaker = 10
         except Exception as e:
             nextUrl["status"] = "error"
             nextUrl["error"] = e
             os.chdir(os.path.dirname(os.path.realpath(__file__)))
         nextUrl = getNextQueuedItem()
-        if nextUrl != "NONE" and loopBreaker > 0:
-            loopBreaker = loopBreaker - 1
-            print("loopBreaker:" + str(loopBreaker))
+        if nextUrl != "NONE":
             if terminateFlag == 0:
                 doDownload()
     else:
