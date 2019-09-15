@@ -149,7 +149,6 @@ def generateHashID(stringToHash):
 
 
 def saveDownloadQueue():
-    lock.acquire()
     global downloadQueue
     dumbSave()
     try:
@@ -160,7 +159,6 @@ def saveDownloadQueue():
     except TypeError:
         for url in downloadQueue.keys():
             downloadQueue[url]["status"] == str(downloadQueue[url]["status"])
-    lock.release()
 
 
 def dumbSave():
@@ -504,7 +502,6 @@ def shutdown_server():
 
 
 executor = ThreadPoolExecutor(max_workers=downloadThreadSize)
-lock = threading.Lock()
 
 if __name__ == "__main__":
     checkAndSetConfig()
