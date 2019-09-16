@@ -381,9 +381,11 @@
             },
             getFolder: function (folderName) {
                 $.post("{{ url_for('getFolder') }}", {
-                    folderName: folderName,
+                    folderName: folderName
                 }, function (data) {
-                    console.debug(data);
+                    var folderData = JSON.parse(data);
+                    console.debug(folderData);
+                    console.debug('folderData:' + typeof folderData);
                     layui.config({
                         base: './'
                     }).extend({
@@ -391,38 +393,40 @@
                         selectM: './static/layui_extends/selectM',
                     }).use(['layer', 'form', 'jquery', 'selectN', 'selectM'], function () {
                         var form = layui.form
-                            , selectN = layui.selectN
-                            , selectM = layui.selectM;
+                            , selectN = layui.selectN;
 
+                        //无限级分类-所有配置
                         //无限级分类-所有配置
                         var catIns2 = selectN({
                             //元素容器【必填】
                             elem: '#cat_ids2'
-                            , search: [false, true]
                             //候选数据【必填】
-                            , data: [data]
+                            , data: folderData
+                            //设置了长度
+                            , width: null
+
+                            //为真只取最后一个值
+                            , last: true
+
+                            //空值项提示，可设置为数组['请选择省','请选择市','请选择县']
+                            , tips: '请选择'
+
+                            //事件过滤器，lay-filter名 不设置与选择器相同(去#.)
+                            , filter: ''
+
+                            //input的name 不设置与选择器相同(去#.)
+                            , name: 'cat2'
+
+                            //数据分隔符
+                            , delimiter: ','
+
+                            //数据的键名
+                            , field: {idName: 'id', titleName: 'name', childName: 'children'}
+
+                            //表单区分 form.render(type, filter); 为class="layui-form" 所在元素的 lay-filter="" 的值
+                            , formFilter: null
                         });
-
-                        form.on('submit(demo)', function (data) {
-                            console.log('catIns1 当前选中的值名：', catIns1.selected);
-                            console.log('catIns1 当前选中的值：', catIns1.values);
-                            console.log('catIns1 当前选中的名：', catIns1.names);
-                            console.log('catIns1 当前最后一个选中值：', catIns1.lastValue);
-                            console.log('catIns1 当前最后一个选中名：', catIns1.lastName);
-                            console.log('catIns1 当前最后一个是否已选：', catIns1.isSelected);
-                            console.log('');
-
-
-                            console.log('tagIns1 当前选中的值名：', tagIns1.selected);
-                            console.log('tagIns1 当前选中的值：', tagIns1.values);
-                            console.log('tagIns1 当前选中的名：', tagIns1.names);
-
-                            console.log('');
-
-                            var formData = data.field;
-                            console.log('表单对象：', formData);
-                        });
-                    });
+                    })
                 });
             }
         },
@@ -438,14 +442,12 @@
             filteredFolderView() {
                 var permittedKeys = Object.keys(vm.folderView).filter(item => {
                     return vm.folderView[item].canon.toLowerCase().includes(this.search.toLowerCase())
-                })
+                });
                 return permittedKeys.map(function (key) {
                     return vm.folderView[key]
                 });
             }
         }
-
-
     });
 
 

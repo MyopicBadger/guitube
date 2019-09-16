@@ -1,27 +1,41 @@
 import os
-import json
+import glob
 
 
-def getDirectoryTree(folder):
-    # param folder: 文件目录
-    # return:目录的字典
-    dirtree = {'children': []}
-    if os.path.isdir(folder):
-        basename = os.path.basename(folder)
-        dirtree['name'] = basename
-        for item in os.listdir(folder):
-            if os.path.isdir(os.path.join(folder, item)):
-                dirtree['children'].append(getDirectoryTree(os.path.join(folder, item)))
-        return dirtree
+def fun(path, parent):
+    global Id
+    global jsonstr
+    global count
+
+    for i, fn in enumerate(glob.glob(path + os.sep + '*')):
+
+        if os.path.isdir(fn):
+            jsonstr += '''{"id":"''' + str(Id) + '''","parent":"''' + str(
+                parent) + '''","name":"''' + os.path.basename(fn) + '''","children":['''
+            parent = Id
+            Id += 1
+            for j, li in enumerate(glob.glob(fn + os.sep + '*')):
+                if os.path.isdir(li):
+                    jsonstr += '''{"id":"''' + str(Id) + '''","parent":"''' + str(
+                        parent) + '''","name":"''' + os.path.basename(
+                        li) + '''","children":['''
+                    parent = Id
+                    Id += 1
+                    fun(li, parent)
+                    jsonstr += "]}"
+                    if j < len(glob.glob(fn + os.sep + '*')) - 1:
+                        jsonstr += ","
+            jsonstr += "]}"
+            if i < len(glob.glob(path + os.sep + '*')) - 1:
+                jsonstr += ","
+    return jsonstr
 
 
-def getDirectoryTreeWithJson(folder):
-    # 将文件夹生成树状的json串
-    # param folder: 文件夹
-    # return:文件树json
-    return json.dumps(getDirectoryTree(folder))
+path = "video"
+parent = 0
+Id = 0
+jsonstr = "["
+jsonstr = fun(path, 0)
+jsonstr += "]"
+print(jsonstr)
 
-
-if __name__ == '__main__':
-    dirs = getDirectoryTreeWithJson('video')
-    print(dirs)
