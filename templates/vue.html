@@ -16,6 +16,8 @@
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/toastr.min.js"></script>
     <link href="/static/css/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/static/layui/css/layui.css" media="all"/>
+    <script charset="UTF-8" src="/static/layui/layui.js"></script>
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -25,7 +27,7 @@
 
     <script type="text/javascript">
         function getMaxCover() {
-            let url = document.getElementById('url').value;
+            let url = vm.inputurl;
             if (url.indexOf('youtube') != -1 || url.indexOf('youtu.be') != -1) {
                 if (url.endsWith('/')) {
                     url = url.substring(0, url.length)
@@ -38,7 +40,7 @@
         }
 
         function getHqCover() {
-            let url = document.getElementById('url').value;
+            let url = vm.inputurl;
             if (url.indexOf('youtube') != -1 || url.indexOf('youtu.be') != -1) {
                 if (url.endsWith('/')) {
                     url = url.substring(0, url.length)
@@ -69,7 +71,7 @@
     <a class="panel-heading" href=""><b
             style="font-size: 24px;color: white;line-height: 48px;height: 48px;padding-left: 2%">搬运组扒源工具</b></a>
 </div>
-<div class="container theme-showcase" role="main" id="mainpage">
+<div class="container theme-showcase layui-form" role="main" id="mainpage">
     <div class="card" style="width: 100%">
         <div class="card-title" style="background:#5a6268">
             <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒源</b>
@@ -94,13 +96,20 @@
                            v-model="videoNames" style="width: 100%"/>
                 </div>
             </div>
-
+            <div id="selectorGroup" class="input-group" style="margin-top: 1%">
+            </div>
             <div class="input-group" style="margin-top: 1%">
                 <button class="btn btn-secondary" type="button" id="button-addon2" v-on:click="addURL"><span
                         class="fas fa-download"
                         aria-hidden="true"></span> 开始扒源
                 </button>
             </div>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">多级2</label>
+        <div id="cat_ids2">
         </div>
     </div>
 
@@ -369,6 +378,52 @@
             },
             clearSearch: function () {
                 vm.search = ""
+            },
+            getFolder: function (folderName) {
+                $.post("{{ url_for('getFolder') }}", {
+                    folderName: folderName,
+                }, function (data) {
+                    console.debug(data);
+                    layui.config({
+                        base: './'
+                    }).extend({
+                        selectN: './static/layui_extends/selectN',
+                        selectM: './static/layui_extends/selectM',
+                    }).use(['layer', 'form', 'jquery', 'selectN', 'selectM'], function () {
+                        var form = layui.form
+                            , selectN = layui.selectN
+                            , selectM = layui.selectM;
+
+                        //无限级分类-所有配置
+                        var catIns2 = selectN({
+                            //元素容器【必填】
+                            elem: '#cat_ids2'
+                            , search: [false, true]
+                            //候选数据【必填】
+                            , data: [data]
+                        });
+
+                        form.on('submit(demo)', function (data) {
+                            console.log('catIns1 当前选中的值名：', catIns1.selected);
+                            console.log('catIns1 当前选中的值：', catIns1.values);
+                            console.log('catIns1 当前选中的名：', catIns1.names);
+                            console.log('catIns1 当前最后一个选中值：', catIns1.lastValue);
+                            console.log('catIns1 当前最后一个选中名：', catIns1.lastName);
+                            console.log('catIns1 当前最后一个是否已选：', catIns1.isSelected);
+                            console.log('');
+
+
+                            console.log('tagIns1 当前选中的值名：', tagIns1.selected);
+                            console.log('tagIns1 当前选中的值：', tagIns1.values);
+                            console.log('tagIns1 当前选中的名：', tagIns1.names);
+
+                            console.log('');
+
+                            var formData = data.field;
+                            console.log('表单对象：', formData);
+                        });
+                    });
+                });
             }
         },
         delimiters: ['[[', ']]'],
@@ -391,7 +446,7 @@
         }
 
 
-    })
+    });
 
 
     /* REMOVED IN FAVOUR OF VUE
@@ -433,6 +488,8 @@
 			{% endwith %}
 		});
         */
+
+    vm.getFolder("video")
 </script>
 </body>
 <html>

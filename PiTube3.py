@@ -42,6 +42,7 @@ lastFileList = ""
 currentDownloadPercent = 0
 currentDownloadUrl = ""
 imgurAlbumSize = 0
+folderQueue = {}
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # The defaults below will be overwritten by the values in the #
@@ -420,6 +421,66 @@ def videoCurrentPercent():
     global downloadQueue
     print("/youtube/percent " + str(currentDownloadPercent))
     return str(currentDownloadPercent)
+
+
+def get_sub_dirs(root_path):
+    root_depth = len(root_path.split(os.path.sep))
+    c = []  # 存放第1级子目录
+    for root, dirs, files in os.walk(root_path, topdown=True):
+        for name in dirs:
+            dir_path = os.path.join(root, name)
+            dir_depth = len(dir_path.split(os.path.sep))
+            if dir_depth == root_depth + 1:
+                c.append(name)
+            else:
+                break
+    return c
+
+
+def simple_dir_tree(ddir):
+    for dirpath, dirnames, filenames in os.walk(ddir.strip(os.sep)):
+        if dirpath == ddir:
+            string = ''
+            for f in filenames:
+                string = string + '\n' + ' ' * len(dirpath) + '|__' + str(f)
+            print(ddir + string)
+        else:
+            dirn = os.path.basename(dirpath)
+            string = ' ' * len(os.path.dirname(dirpath)) + '|__' + dirn
+            for f in filenames:
+                string = string + '\n' + ' ' * len(dirpath) + '|__' + str(f)
+            print(string)
+
+
+def getDirectoryTree(folder):
+    # param folder: 文件目录
+    # return:目录的字典
+    dirtree = {'children': []}
+    if os.path.isdir(folder):
+        basename = os.path.basename(folder)
+        dirtree['name'] = basename
+        for item in os.listdir(folder):
+            if os.path.isdir(os.path.join(folder, item)):
+                dirtree['children'].append(getDirectoryTree(os.path.join(folder, item)))
+        return dirtree
+
+
+def getDirectoryTreeWithJson(folder):
+    # 将文件夹生成树状的json串
+    # param folder: 文件夹
+    # return:文件树json
+    dir = [getDirectoryTree(folder)]
+    return json.dumps(dir)
+
+
+@app.route("/youtube/getfolder", methods=["POST"])
+def getFolder():
+    if request.method == "POST":
+        global folderQueue
+        folderName = request.form["folderName"]
+
+        dirs = getDirectoryTreeWithJson(folderName)
+        return dirs
 
 
 def getNextStartedItem():
