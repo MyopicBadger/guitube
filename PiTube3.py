@@ -422,28 +422,26 @@ def videoCurrentPercent():
     return str(currentDownloadPercent)
 
 
-def fun(path):
-    global Id
-    global jsonstr
+jsonStr = ''
 
+
+def fun(id, path):
+    global jsonStr
     for i, fn in enumerate(glob.glob(path + os.sep + '*')):
-
         if os.path.isdir(fn):
-            jsonstr += '''{"id":"''' + str(Id) + '''","name":"''' + os.path.basename(fn) + '''","children":['''
-            Id += 1
+            jsonStr += '{"id":"' + str(id) + '","name":"' + os.path.basename(fn) + '","children":['
+            id += 1
             for j, li in enumerate(glob.glob(fn + os.sep + '*')):
                 if os.path.isdir(li):
-                    jsonstr += '''{"id":"''' + str(Id) + '''","name":"''' + os.path.basename(
-                        li) + '''","children":['''
-                    Id += 1
-                    fun(li)
-                    jsonstr += "]}"
+                    jsonStr += '{"id":"' + str(id) + '","name":"' + os.path.basename(li) + '","children":['
+                    id += 1
+                    fun(id, li)
+                    jsonStr += "]}"
                     if j < len(glob.glob(fn + os.sep + '*')) - 1:
-                        jsonstr += ","
-            jsonstr += "]}"
+                        jsonStr += ","
+            jsonStr += "]}"
             if i < len(glob.glob(path + os.sep + '*')) - 1:
-                jsonstr += ","
-    return jsonstr
+                jsonStr += ","
 
 
 def clean_empty(d):
@@ -457,18 +455,20 @@ def clean_empty(d):
 @app.route("/youtube/getfolder", methods=["POST"])
 def getFolder():
     if request.method == "POST":
-        global folderQueue
+        global folderQueue, jsonStr
         folderName = request.form["folderName"]
-        global jsonstr
-        global Id
-        Id = 0
-        jsonstr = "["
-        jsonstr = fun(folderName)
-        jsonstr += "]"
-        dictMap = json.loads(jsonstr)
+        id = 0
+        jsonStr = '['
+        fun(id, folderName)
+        jsonStr += "]"
+        jsonStr = jsonStr.replace('},]', '}]')
+        jsonStr = jsonStr.replace('\n', '').replace('\n', '')
+        jsonStr = jsonStr.replace('\r', '').replace('\r', '')
+        jsonStr = jsonStr.replace("\t", "").strip()
+        dictMap = json.loads(jsonStr)
         dictMap = clean_empty(dictMap)
-        jsonstr = json.dumps(dictMap)
-        return jsonstr
+        jsonStr = json.dumps(dictMap)
+        return jsonStr
 
 
 def getNextStartedItem():
