@@ -280,14 +280,14 @@ def forceStart():
 
 
 def fireDownloadThread():
-    executor.submit(doDownload())
+    doDownload()
 
 
 @app.route("/youtube/add", methods=["POST", "GET"])
 def videoAddProper():
     global idCounter
+    global downloadQueue
     if request.method == "POST":
-        global downloadQueue
         url = request.form["videourl"]
         path = request.form["videoPaths"]
         name = request.form["videoNames"]
@@ -303,11 +303,15 @@ def videoAddProper():
                     ("name", name)
                 ]
             )
-        saveDownloadQueue()
-        fireDownloadThread()
+        executor.submit(addProper)
         return jsonify(downloadQueue)
     else:
         return jsonify(downloadQueue)
+
+
+def addProper():
+    saveDownloadQueue()
+    fireDownloadThread()
 
 
 @app.route("/youtube/kill")
@@ -344,11 +348,6 @@ def forceSave():
 def videoList():
     global downloadQueue
     return render_template("vue.html")
-
-
-@app.route("/youtube/selectfolder")
-def selectFolder():
-    return render_template("SelectFolder.html")
 
 
 def isPlayableFile(filename):
@@ -423,26 +422,21 @@ def videoCurrentPercent():
     return str(currentDownloadPercent)
 
 
-def fun(path, parent):
+def fun(path):
     global Id
     global jsonstr
-    global count
 
     for i, fn in enumerate(glob.glob(path + os.sep + '*')):
 
         if os.path.isdir(fn):
-            jsonstr += '''{"id":"''' + str(Id) + '''","parent":"''' + str(
-                parent) + '''","name":"''' + os.path.basename(fn) + '''","children":['''
-            parent = Id
+            jsonstr += '''{"id":"''' + str(Id) + '''","name":"''' + os.path.basename(fn) + '''","children":['''
             Id += 1
             for j, li in enumerate(glob.glob(fn + os.sep + '*')):
                 if os.path.isdir(li):
-                    jsonstr += '''{"id":"''' + str(Id) + '''","parent":"''' + str(
-                        parent) + '''","name":"''' + os.path.basename(
+                    jsonstr += '''{"id":"''' + str(Id) + '''","name":"''' + os.path.basename(
                         li) + '''","children":['''
-                    parent = Id
                     Id += 1
-                    fun(li, parent)
+                    fun(li)
                     jsonstr += "]}"
                     if j < len(glob.glob(fn + os.sep + '*')) - 1:
                         jsonstr += ","
@@ -452,9 +446,12 @@ def fun(path, parent):
     return jsonstr
 
 
-parent = 0
-Id = 0
-jsonstr = "["
+def clean_empty(d):
+    if not isinstance(d, (dict, list)):
+        return d
+    if isinstance(d, list):
+        return [v for v in (clean_empty(v) for v in d) if v]
+    return {k: v for k, v in ((k, clean_empty(v)) for k, v in d.items()) if v}
 
 
 @app.route("/youtube/getfolder", methods=["POST"])
@@ -463,13 +460,14 @@ def getFolder():
         global folderQueue
         folderName = request.form["folderName"]
         global jsonstr
-        global parent
         global Id
-        parent = 0
         Id = 0
         jsonstr = "["
-        jsonstr = fun(folderName, 0)
+        jsonstr = fun(folderName)
         jsonstr += "]"
+        dictMap = json.loads(jsonstr)
+        dictMap = clean_empty(dictMap)
+        jsonstr = json.dumps(dictMap)
         return jsonstr
 
 

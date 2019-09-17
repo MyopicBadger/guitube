@@ -16,8 +16,11 @@
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/toastr.min.js"></script>
     <link href="/static/css/toastr.min.css" rel="stylesheet"/>
+    <link href="/static/css/an-skill-bar.css" rel="stylesheet"/>
+    <link href="/static/css/main.css" rel="stylesheet"/>
     <link rel="stylesheet" href="/static/layui/css/layui.css" media="all"/>
     <script charset="UTF-8" src="/static/layui/layui.js"></script>
+    <link rel="stylesheet" href="/static/css/fakeLoader.min.css">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -52,17 +55,6 @@
             }
         }
 
-        function openSelectFolder() {
-            var X = ($(window).width() - 900) / 2;
-            var Y = ($(window).height() - 598) / 2;
-            open('/youtube/selectfolder', '',
-                'fullscreen=1,location=0,menubar=0,resizable=0,scrollbars=0,' +
-                'status=0,toolbar=0,menu=0,width=900,height=598,left=' + X + ',top=' + Y);
-        }
-
-        function setVideoPath(videoPath) {
-            vm.videoPaths = videoPath;
-        }
     </script>
 </head>
 
@@ -80,23 +72,18 @@
             <input type="text" class="form-control" placeholder="视频链接" aria-label="请输入视频链接"
                    aria-describedby="button-addon2"
                    v-model="inputurl">
-            <div style="display: flex;justify-content: space-between;width: 100%;margin-top: 1%;">
-                <div style="width: 49.5%;margin-right: 0.5%;display: flex;justify-content: space-between;">
-                    <input class="form-control" id="videoPath" placeholder="保存的文件夹"
-                           aria-label="请选择保存的文件夹" type="text" readonly="readonly" style="background-color: white"
-                           v-model="videoPaths"/>
-                    <button type="button" class="btn btn-secondary"
-                            onClick="openSelectFolder()">
-                        选择文件夹
-                    </button>
+            <div class="layui-form-item" style="width: 100%;margin-top: 1%;">
+                <label class="layui-form-label"
+                       style="padding: 0px;width: 98px;line-height: 38px">保存的文件夹&nbsp;&nbsp;</label>
+                <div id="cat_ids2">
                 </div>
-                <div style="width: 49.5%;margin-left: 0.5%">
+            </div>
+            <div style="display: flex;justify-content: space-between;width: 100%;">
+                <div>
                     <input class="form-control" id="videoName" placeholder="保存的文件名" type="text"
                            aria-label="请输入保存的文件名"
                            v-model="videoNames" style="width: 100%"/>
                 </div>
-            </div>
-            <div id="selectorGroup" class="input-group" style="margin-top: 1%">
             </div>
             <div class="input-group" style="margin-top: 1%">
                 <button class="btn btn-secondary" type="button" id="button-addon2" v-on:click="addURL"><span
@@ -107,12 +94,6 @@
         </div>
     </div>
 
-    <div class="layui-form-item">
-        <label class="layui-form-label">多级2</label>
-        <div id="cat_ids2">
-        </div>
-    </div>
-
     <div class="card" style="width: 100%;margin-top: 2%;">
         <div class="card-title" style="background:#5a6268">
             <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒封面图</b>
@@ -120,6 +101,7 @@
         <div class="card-body">
             <p>获取封面图功能只支持油管，有其他的网站需要请私聊我</p>
             <p>使用方法：<br/>1：填写油管视频的链接<br/>2：点击下面的俩按钮<br/><b style="font-size: 16px">如果高清版封面没有图片，请点击低清版。</b></p>
+            <br/>
             <button class="btn btn-secondary" onclick="getMaxCover()">获取高清版封面图</button>
             <button class="btn btn-secondary" onclick="getHqCover()">获取低清版封面图</button>
         </div>
@@ -164,8 +146,16 @@
                         任务:[[item.filename]]- 下载中<br/>
                         已下载:<span id="db">[[formatBytes(item.dbytes)]]</span>&nbsp;&nbsp;总大小:
                         <span id="tb">[[formatBytes(item.tbytes)]]</span>&nbsp;&nbsp;下载速度:<span
-                            id="sb">[[formatBytes(item.speed)]]</span>/S&nbsp;&nbsp;进度:
-                        <span id="pc">[[formatPercent(item.percent)]]</span></li>
+                            id="sb">[[formatBytes(item.speed)]]</span>/S&nbsp;<br/>
+                        <div id="skill">
+                            <div class="skillbar html" style="border-radius:5px;background-color:rgba(0, 80, 80, .3)">
+                                <div class="filled" style="border-radius:0px 5px 5px 0px;margin-left:85px "
+                                     v-bind:style="{ width: [[formatPercent(item.percent)]]}"></div>
+                                <span class="title">进度:</span>
+                                <span class="percent">[[formatPercent(item.percent)]]</span>
+                            </div>
+                        </div>
+                    </li>
                     <!-- QUEUED -->
                     <li class="list-group-item list-group-item-info" v-else-if="item.status == 'queued'">
                         任务:[[item.url]] - 数据查询中
@@ -204,7 +194,7 @@
         "hideEasing": "linear",
         "showMethod": "fadeIn",
         "hideMethod": "fadeOut"
-    }
+    };
     var vm = new Vue({
         el: '#mainpage',
         data: {
@@ -219,6 +209,7 @@
             page: "download",
             search: "",
             lastFolderPing: 30,
+            catIns2: {}
         },
         methods: {
             setPage: function (pageName) {
@@ -307,9 +298,12 @@
                     toastr.error("视频链接不能为空");
                     return;
                 }
-                if (vm.videoPaths == null || vm.videoPaths == "") {
-                    toastr.error("保存的文件夹不能为空");
-                    return false;
+                vm.videoPaths = '/video/';
+                for (var i = 0; i <= vm.catIns2.names.length - 1; i++) {
+                    if (vm.catIns2.names[i] == '请选择') {
+                        break
+                    }
+                    vm.videoPaths += vm.catIns2.names[i] + "/";
                 }
                 console.log("URL");
                 console.log(vm.inputurl);
@@ -392,12 +386,11 @@
                         selectN: './static/layui_extends/selectN',
                         selectM: './static/layui_extends/selectM',
                     }).use(['layer', 'form', 'jquery', 'selectN', 'selectM'], function () {
-                        var form = layui.form
-                            , selectN = layui.selectN;
+                        var selectN = layui.selectN;
 
                         //无限级分类-所有配置
                         //无限级分类-所有配置
-                        var catIns2 = selectN({
+                        vm.catIns2 = selectN({
                             //元素容器【必填】
                             elem: '#cat_ids2'
                             //候选数据【必填】
@@ -450,7 +443,6 @@
         }
     });
 
-
     /* REMOVED IN FAVOUR OF VUE
     $(document).ready(function () {
 {% with messages = get_flashed_messages(with_categories = true) %}
@@ -491,7 +483,19 @@
 		});
         */
 
-    vm.getFolder("video")
+    vm.getFolder("/video/")
 </script>
+
+<script src="/static/js/fakeLoader.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $.fakeLoader({
+            timeToHide: 1200,
+            bgColor: "#1abc9c",
+            spinner: "spinner6"
+        });
+    });
+</script>
+<div class="fakeLoader"></div>
 </body>
-<html>
+</html>
