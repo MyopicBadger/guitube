@@ -402,7 +402,7 @@
         },
         delimiters: ['[[', ']]'],
         mounted: function () {
-            this.getFolder("video");
+            this.getFolder("/video/");
             this.$nextTick(function () {
                 var progresspump = setInterval(function () {
                     vm.refresh()
