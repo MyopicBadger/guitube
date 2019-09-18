@@ -5,16 +5,17 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href='/static/style.css'/>
-    <link rel="icon" href="/static/favicon.ico" type="image/x-icon"/>
+    <link rel="stylesheet" href='./static/style.css'/>
+    <link rel="icon" href="./static/favicon.ico" type="image/x-icon"/>
     <title>搬运组扒源工具</title>
     <!-- Bootstrap bootstrap-4.1.3-dist -->
-    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="./static/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css"
           integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz"
           crossorigin="anonymous">
-    <link href="/static/css/toastr.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="/static/layui/css/layui.css" media="all"/>
+    <link href="./static/css/toastr.min.css" rel="stylesheet"/>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -25,95 +26,100 @@
 </head>
 
 <body>
-<div class="card-title" style="width: 100%;background:#5a6268">
-    <button class="btn btn-secondary" type="button"><span
-            class="fas fa-home" aria-hidden="true" style="line-height: 48px"></span>&nbsp;&nbsp;搬运组扒源工具
-    </button>
-    <button class="btn btn-secondary" type="button" onclick="window.open('http://www.mrdvh.info')"><span
-            class="fas fa-film" aria-hidden="true" style="line-height: 48px"></span>&nbsp;&nbsp;视频源网站
-    </button>
-</div>
-<div class="container theme-showcase layui-form" role="main" id="mainpage">
-    <div class="card" style="width: 100%">
-        <div class="card-title" style="background:#5a6268">
-            <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒源</b>
+<div class="container theme-showcase" role="main" id="mainpage">
+    <el-card class="box-card">
+        <div class="item">
+            <i class="el-icon-s-home" style="margin-right: 1%;">搬运组扒源工具</i>
+            <el-link :underline="false" icon="el-icon-film" href="http://www.mrdvh.info" target="_blank">视频源网站
+            </el-link>
         </div>
-        <div class="card-body">
-            <input type="text" class="form-control" placeholder="视频链接" aria-label="请输入视频链接"
-                   aria-describedby="button-addon2"
-                   v-model="inputurl">
-            <div class="layui-form-item" style="width: 100%;margin-top: 1%;">
-                <label class="layui-form-label"
-                       style="padding: 0px;width: 98px;line-height: 38px">保存的文件夹&nbsp;&nbsp;</label>
-                <div id="cat_ids2"></div>
-            </div>
-            <div style="display: flex;justify-content: space-between;width: 100%;">
-                <div>
-                    <input class="form-control" id="videoName" placeholder="保存的文件名" type="text"
-                           aria-label="请输入保存的文件名"
-                           v-model="videoNames" style="width: 100%"/>
-                </div>
-            </div>
-            <div class="input-group" style="margin-top: 1%">
-                <button class="btn btn-secondary" type="button" id="button-addon2" v-on:click="addURL"><span
-                        class="fas fa-download"
-                        aria-hidden="true"></span> 开始扒源
-                </button>
-            </div>
+    </el-card>
+    <el-card class="box-card" style="margin-top: 1%">
+        <div slot="header" class="clearfix">
+            <span>扒源</span>
         </div>
-    </div>
+        <div class="item">
+            <el-row>
+                <el-col :span="24">
+                    <el-input type="text" placeholder="视频链接" aria-label="请输入视频链接"
+                              aria-describedby="button-addon2"
+                              v-model="inputurl"></el-input>
+                </el-col>
+            </el-row>
+            <el-row style="margin-top: 1%">
+                <el-col :span="11" style="margin-right: 2%">
+                    <el-cascader style="width:100%"
+                                 v-model="selectedOptions"
+                                 placeholder="请选择文件夹"
+                                 :options="cascaderData"
+                                 :change-on-select="true"
+                                 @active-item-change="handleItemChange"
+                                 filterable
+                                 :props="{value: 'name',label: 'name',children: 'children'}">
+                    </el-cascader>
+                </el-col>
+                <el-col :span="12" style="margin-left: 2%">
+                    <el-input id="videoName" placeholder="保存的文件名" type="text"
+                              aria-label="请输入保存的文件名"
+                              v-model="videoNames" style="width: 100%">
+                    </el-input>
+                </el-col>
+            </el-row>
+            <el-row style="margin-top: 1%">
+                <el-col :span="24">
+                    <el-button type="primary" icon="el-icon-download" v-on:click="addURL">开始扒源</el-button>
+                </el-col>
+            </el-row>
+        </div>
+    </el-card>
 
-    <div class="card" style="width: 100%;margin-top: 2%;">
-        <div class="card-title" style="background:#5a6268">
-            <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒封面图</b>
+    <el-card class="box-card" style="margin-top: 1%">
+        <div slot="header" class="clearfix">
+            <span>扒封面图</span>
         </div>
-        <div class="card-body">
+        <div class="item">
             <p>获取封面图功能只支持油管，有其他的网站需要请私聊我</p>
             <p>使用方法：<br/>1：填写油管视频的链接<br/>2：点击下面的俩按钮<br/><b style="font-size: 16px">如果高清版封面没有图片，请点击低清版。</b></p>
-            <br/>
-            <button class="btn btn-secondary" onclick="getMaxCover()">获取高清版封面图</button>
-            <button class="btn btn-secondary" onclick="getHqCover()">获取低清版封面图</button>
+            <el-button type="primary" icon="el-icon-download" onclick="getMaxCover()">获取高清版封面图</el-button>
+            <el-button type="primary" icon="el-icon-download" onclick="getHqCover()">获取低清版封面图</el-button>
         </div>
-    </div>
+    </el-card>
 
-    <div class="card" id="mainQueue" v-if="downloadQueue && page=='download'" style="margin-top: 2%">
-        <div class="card-title" style="background:#5a6268">
-            <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒源任务列表</b>
-            <span class="float-right" style="line-height: 48px;margin-right: 1%">
-                <button class="btn btn-secondary" type="button" v-on:click="clearcompleted"><span
-                        class="fas fa-trash"
-                        aria-hidden="true"></span> 清空已完成
-                </button>
-            </span>
+    <el-card class="box-card" style="margin-top: 1%" id="mainQueue" v-if="downloadQueue && page=='download'">
+        <div slot="header" class="clearfix">
+            <span class="demonstration" style="line-height: 40px">扒源任务列表</span>
+            <el-button type="primary" style="float: right;" icon="el-icon-delete"
+                       v-on:click="clearcompleted">清空已完成
+            </el-button>
         </div>
-        <div class="card-body">
+        <div class="item">
             <ul class="list-group">
                 <template v-for="item in downloadQueue">
                     <!-- ERROR -->
                     <li class="list-group-item list-group-item-danger" v-if="item.status == 'error'">
                         任务:[[item.url]] ([[item.filename]]) - 下载失败
                         <span class="float-right">
-                            <a class="btn btn-secondary" href="#" v-on:click='rerunQueue(item.id)'>
-                                <span class="fas fa-sync" aria-hidden="true"></span>&nbsp;
-                            </a>
-                            <a class="btn btn-secondary" href="#" v-on:click='deleteQueue(item.id)'>
-                                <span class="fas fa-trash" aria-hidden="true"></span>
-                            </a>
+                            <el-button type="primary" icon="el-icon-refresh-right"
+                                       v-on:click='rerunQueue(item.id)'>重试
+                            </el-button>
+                             <el-button type="primary" icon="el-icon-delete"
+                                        v-on:click='deleteQueue(item.id)'>删除
+                            </el-button>
                         </span>
                         <br/>
                         错误信息:[[item.error]]
                     </li>
                     <!-- FINISHED -->
                     <li class="list-group-item list-group-item-success" v-else-if="item.status == 'finished'">
-                        任务:[[item.filename]] - 转码中...
+                        任务:[[item.filename]] - 转码中
                     </li>
                     <!-- COMPLETED -->
                     <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
                         任务:[[item.filename]] - 已完成
                         <span class="float-right">
-                            <a class="btn btn-secondary" href="#" v-on:click='deleteQueue(item.id)'>
-                                <span class="fas fa-trash" aria-hidden="true"></span>
-                            </a>
+                            <el-button type="primary" icon="el-icon-delete"
+                                       v-on:click='deleteQueue(item.id)'>删除
+                            </el-button>
                         </span>
                     </li>
                     <!-- DOWNLOADING -->
@@ -121,20 +127,20 @@
                         任务:[[item.filename]]- 下载中<br/>
                         已下载:<span id="db">[[formatBytes(item.dbytes)]]</span>&nbsp;&nbsp;总大小:
                         <span id="tb">[[formatBytes(item.tbytes)]]</span>&nbsp;&nbsp;下载速度:<span
-                            id="sb">[[formatBytes(item.speed)]]</span>/S&nbsp;<br/>
-                        <div class="layui-progress layui-progress-big">
-                            <div class="layui-progress-bar layui-bg-cyan"
-                                 v-bind:style="{width: [[formatPercent(item.percent)]]}">
-                                <span class="layui-progress-text">[[formatPercent(item.percent)]]</span>
-                            </div>
-                        </div>
+                            id="sb">[[item.speed]]</span>&nbsp;<br/>
+                        <el-progress style='margin-top: 5px' :text-inside="true" :stroke-width="24"
+                                     :percentage="[[formatProgress(item.percent)]]">
+                        </el-progress>
                     </li>
                     <!-- QUEUED -->
                     <li class="list-group-item list-group-item-info" v-else-if="item.status == 'queued'">
                         任务:[[item.url]] - 数据查询中
-                        <a class="btn btn-secondary float-right" href="#" v-on:click='deleteQueue(item.id)'><span
-                                class="fas fa-trash"
-                                aria-hidden="true"></span></a></li>
+                        <span class="float-right">
+                            <el-button type="primary" icon="el-icon-delete"
+                                       v-on:click='deleteQueue(item.id)'>删除
+                            </el-button>
+                        </span>
+                    </li>
                     <!-- OTHER -->
                     <li class="list-group-item list-group-item-danger" v-else>[[item.url]]
                         任务:[[item.filename]] - 渲染错误
@@ -142,16 +148,17 @@
                 </template>
             </ul>
         </div>
-    </div>
+    </el-card>
 </div>
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-<script src="/static/js/jquery.min.js"></script>
+<script src="./static/js/jquery.min.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->
-<script src="/static/js/bootstrap.bundle.min.js"></script>
+<script src="./static/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
-<script src="/static/js/toastr.min.js"></script>
-<script charset="UTF-8" src="/static/layui/layui.js"></script>
+<script src="./static/js/toastr.min.js"></script>
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
 <script type="text/javascript">
     function getMaxCover() {
         let url = vm.inputurl;
@@ -212,7 +219,9 @@
             page: "download",
             search: "",
             lastFolderPing: 30,
-            catIns2: {}
+            cascaderData: [],
+            selectedOptions: [],
+            downloadQueueData: {}
         },
         methods: {
             setPage: function (pageName) {
@@ -305,11 +314,8 @@
                     return;
                 }
                 vm.videoPaths = '/video/';
-                for (var i = 0; i <= vm.catIns2.names.length - 1; i++) {
-                    if (vm.catIns2.names[i] == '请选择') {
-                        break
-                    }
-                    vm.videoPaths += vm.catIns2.names[i] + "/";
+                for (item in vm.selectedOptions) {
+                    vm.videoPaths += vm.selectedOptions[item] + "/";
                 }
                 console.log("URL");
                 console.log(vm.inputurl);
@@ -377,6 +383,9 @@
             formatPercent: function (percent) {
                 return Math.floor(percent) + "%"
             },
+            formatProgress: function (percent) {
+                return Math.floor(percent)
+            },
             clearSearch: function () {
                 vm.search = ""
             },
@@ -384,52 +393,16 @@
                 $.post("{{ url_for('getFolder') }}", {
                     folderName: folderName
                 }, function (data) {
-                    var folderData = JSON.parse(data);
-                    layui.config({
-                        base: './'
-                    }).extend({
-                        selectN: './static/layui_extends/selectN',
-                    }).use(['layer', 'form', 'jquery', 'selectN',], function () {
-                        var selectN = layui.selectN;
-
-                        //无限级分类-所有配置
-                        //无限级分类-所有配置
-                        vm.catIns2 = selectN({
-                            //元素容器【必填】
-                            elem: '#cat_ids2'
-                            //候选数据【必填】
-                            , data: folderData
-                            //设置了长度
-                            , width: null
-
-                            //为真只取最后一个值
-                            , last: true
-
-                            //空值项提示，可设置为数组['请选择省','请选择市','请选择县']
-                            , tips: '请选择'
-
-                            //事件过滤器，lay-filter名 不设置与选择器相同(去#.)
-                            , filter: ''
-
-                            //input的name 不设置与选择器相同(去#.)
-                            , name: 'cat2'
-
-                            //数据分隔符
-                            , delimiter: ','
-
-                            //数据的键名
-                            , field: {idName: 'id', titleName: 'name', childName: 'children'}
-
-                            //表单区分 form.render(type, filter); 为class="layui-form" 所在元素的 lay-filter="" 的值
-                            , formFilter: null
-                        });
-                    })
+                    vm.cascaderData = data;
                 });
+            },
+            handleItemChange(value) {
+                console.log(value);
             }
         },
         delimiters: ['[[', ']]'],
         mounted: function () {
-            this.getFolder("/video/");
+            this.getFolder("video");
             this.$nextTick(function () {
                 var progresspump = setInterval(function () {
                     vm.refresh()
@@ -446,11 +419,6 @@
                 });
             }
         }
-    });
-</script>
-<script>
-    layui.use('element', function () {
-        var element = layui.element; //Tab的切换功能，切换事件监听等，需要依赖element模块
     });
 </script>
 </body>

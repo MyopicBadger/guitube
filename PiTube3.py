@@ -42,7 +42,6 @@ lastFileList = ""
 currentDownloadPercent = 0
 currentDownloadUrl = ""
 imgurAlbumSize = 0
-folderQueue = {}
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # The defaults below will be overwritten by the values in the #
@@ -218,7 +217,8 @@ class MyHook:
                     )
                     downloadQueue[url]["dbytes"] = d.get("downloaded_bytes", 0)
                     downloadQueue[url]["time"] = d.get("elapsed", "?")
-                    downloadQueue[url]["speed"] = d.get("speed", 0)
+                    downloadQueue[url]["speed"] = d.get('_speed_str', '?')
+                downloadQueue[url]['eta'] = d.get('_eta_str', '?')
                 downloadQueue[url]["canon"] = d.get("filename", url)
                 downloadQueue[url]["status"] = d.get("status", "?")
                 downloadQueue[url]["percent"] = currentDownloadPercent
@@ -422,28 +422,31 @@ def videoCurrentPercent():
     return str(currentDownloadPercent)
 
 
-jsonStr = ''
+# 迭代生成目录树，用dict保存
+def createDict(path, root):
+    pathList = os.listdir(path)
+    for i, item in enumerate(pathList):
+        if isDir(getJoinPath(path, item)):
+            path = getJoinPath(path, item)
+            folder = {'name': item, 'children': []}
+            root.append(folder)
+            createDict(path, folder['children'])
+            path = '\\'.join(path.split('\\')[:-1])
 
 
-def fun(id, path):
-    global jsonStr
-    for i, fn in enumerate(glob.glob(path + os.sep + '*')):
-        if os.path.isdir(fn):
-            jsonStr += '{"id":"' + str(id) + '","name":"' + os.path.basename(fn) + '","children":['
-            id += 1
-            for j, li in enumerate(glob.glob(fn + os.sep + '*')):
-                if os.path.isdir(li):
-                    jsonStr += '{"id":"' + str(id) + '","name":"' + os.path.basename(li) + '","children":['
-                    id += 1
-                    fun(id, li)
-                    jsonStr += "]}"
-                    if j < len(glob.glob(fn + os.sep + '*')) - 1:
-                        jsonStr += ","
-            jsonStr += "]}"
-            if i < len(glob.glob(path + os.sep + '*')) - 1:
-                jsonStr += ","
+# 合并路径和目录，返回完整路径
+def getJoinPath(path, item):
+    return os.path.join(path, item)
 
 
+# 判断是否为目录
+def isDir(path):
+    if os.path.isdir(path):
+        return True
+    return False
+
+
+# 清空空值的字段
 def clean_empty(d):
     if not isinstance(d, (dict, list)):
         return d
@@ -455,20 +458,18 @@ def clean_empty(d):
 @app.route("/youtube/getfolder", methods=["POST"])
 def getFolder():
     if request.method == "POST":
-        global folderQueue, jsonStr
         folderName = request.form["folderName"]
-        id = 0
-        jsonStr = '['
-        fun(id, folderName)
-        jsonStr += "]"
-        jsonStr = jsonStr.replace('},]', '}]')
-        jsonStr = jsonStr.replace('\n', '').replace('\n', '')
-        jsonStr = jsonStr.replace('\r', '').replace('\r', '')
-        jsonStr = jsonStr.replace("\t", "").strip()
-        dictMap = json.loads(jsonStr)
-        dictMap = clean_empty(dictMap)
-        jsonStr = json.dumps(dictMap)
-        return jsonStr
+        root = []
+        createDict(folderName, root)
+        return jsonify(clean_empty(root))
+
+
+@app.route("/youtube/getfolder1", methods=["POST"])
+def getFolder1():
+    if request.method == "POST":
+        folderName = request.form["folderName"]
+        dirs = get_sub_dirs(folderName)
+        return jsonify(dirs)
 
 
 def getNextStartedItem():
