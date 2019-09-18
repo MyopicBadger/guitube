@@ -14,10 +14,7 @@
           integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz"
           crossorigin="anonymous">
     <link href="/static/css/toastr.min.css" rel="stylesheet"/>
-    <link href="/static/css/an-skill-bar.css" rel="stylesheet"/>
-    <link href="/static/css/main.css" rel="stylesheet"/>
     <link rel="stylesheet" href="/static/layui/css/layui.css" media="all"/>
-    <link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -48,8 +45,7 @@
             <div class="layui-form-item" style="width: 100%;margin-top: 1%;">
                 <label class="layui-form-label"
                        style="padding: 0px;width: 98px;line-height: 38px">保存的文件夹&nbsp;&nbsp;</label>
-                <div id="cat_ids2">
-                </div>
+                <div id="cat_ids2"></div>
             </div>
             <div style="display: flex;justify-content: space-between;width: 100%;">
                 <div>
@@ -126,12 +122,10 @@
                         已下载:<span id="db">[[formatBytes(item.dbytes)]]</span>&nbsp;&nbsp;总大小:
                         <span id="tb">[[formatBytes(item.tbytes)]]</span>&nbsp;&nbsp;下载速度:<span
                             id="sb">[[formatBytes(item.speed)]]</span>/S&nbsp;<br/>
-                        <div id="skill">
-                            <div class="skillbar html" style="border-radius:5px;background-color:rgba(0, 80, 80, .3)">
-                                <div class="filled" style="border-radius:0px 5px 5px 0px;margin-left:85px "
-                                     v-bind:style="{ width: [[formatPercent(item.percent)]]}"></div>
-                                <span class="title">进度:</span>
-                                <span class="percent">[[formatPercent(item.percent)]]</span>
+                        <div class="layui-progress layui-progress-big">
+                            <div class="layui-progress-bar layui-bg-cyan"
+                                 v-bind:style="{width: [[formatPercent(item.percent)]]}">
+                                <span class="layui-progress-text">[[formatPercent(item.percent)]]</span>
                             </div>
                         </div>
                     </li>
@@ -157,7 +151,6 @@
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
 <script src="/static/js/toastr.min.js"></script>
-<script type="text/javascript" src="http://unpkg.com/iview/dist/iview.min.js"></script>
 <script charset="UTF-8" src="/static/layui/layui.js"></script>
 <script type="text/javascript">
     function getMaxCover() {
@@ -454,47 +447,11 @@
             }
         }
     });
-
-    /* REMOVED IN FAVOUR OF VUE
-    $(document).ready(function () {
-{% with messages = get_flashed_messages(with_categories = true) %}
-			{% if messages %}
-
-			toastr.options = {
-				"closeButton": true,
-				"debug": false,
-				"newestOnTop": true,
-				"progressBar": true,
-				"positionClass": "toast-top-right",
-				"preventDuplicates": false,
-				"onclick": null,
-				"showDuration": "300",
-				"hideDuration": "1000",
-				"timeOut": "5000",
-				"extendedTimeOut": "1000",
-				"showEasing": "swing",
-				"hideEasing": "linear",
-				"showMethod": "fadeIn",
-				"hideMethod": "fadeOut"
-			}
-			console.log("executed a")
-			{% for category, message in messages %}
-			{% if category == 'error' %}
-			toastr.error("{{ message }}");
-			{% elif category == 'warn' %}
-			toastr.warning("{{ message }}");
-			{% elif category == 'info' %}
-			toastr.info("{{ message }}");
-			{% elif category == 'success' %}
-			toastr.success("{{ message }}");
-			{% endif %}
-			console.log("executed b")
-			{% endfor -%}
-			{% endif %}
-			{% endwith %}
-		});
-        */
-
+</script>
+<script>
+    layui.use('element', function () {
+        var element = layui.element; //Tab的切换功能，切换事件监听等，需要依赖element模块
+    });
 </script>
 </body>
 </html>
