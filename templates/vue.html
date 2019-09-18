@@ -17,7 +17,7 @@
     <link href="/static/css/an-skill-bar.css" rel="stylesheet"/>
     <link href="/static/css/main.css" rel="stylesheet"/>
     <link rel="stylesheet" href="/static/layui/css/layui.css" media="all"/>
-    <link rel="stylesheet" href="/static/css/fakeLoader.min.css">
+    <link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -28,7 +28,6 @@
 </head>
 
 <body>
-<div class="fakeLoader"></div>
 <div class="card-title" style="width: 100%;background:#5a6268">
     <a class="panel-heading" href=""><b
             style="font-size: 24px;color: white;line-height: 48px;height: 48px;padding-left: 2%">搬运组扒源工具</b></a>
@@ -148,8 +147,8 @@
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
 <script src="/static/js/toastr.min.js"></script>
+<script type="text/javascript" src="http://unpkg.com/iview/dist/iview.min.js"></script>
 <script charset="UTF-8" src="/static/layui/layui.js"></script>
-<script src="/static/js/fakeLoader.min.js"></script>
 <script type="text/javascript">
     function getMaxCover() {
         let url = vm.inputurl;
@@ -423,6 +422,7 @@
         },
         delimiters: ['[[', ']]'],
         mounted: function () {
+            this.getFolder("/video/");
             this.$nextTick(function () {
                 var progresspump = setInterval(function () {
                     vm.refresh()
@@ -481,16 +481,6 @@
 		});
         */
 
-    vm.getFolder("/video/")
-</script>
-<script>
-    $(document).ready(function () {
-        $.fakeLoader({
-            timeToHide: 1200,
-            bgColor: "#1abc9c",
-            spinner: "spinner6"
-        });
-    });
 </script>
 </body>
 </html>
