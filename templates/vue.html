@@ -29,8 +29,12 @@
 
 <body>
 <div class="card-title" style="width: 100%;background:#5a6268">
-    <a class="panel-heading" href=""><b
-            style="font-size: 24px;color: white;line-height: 48px;height: 48px;padding-left: 2%">搬运组扒源工具</b></a>
+    <button class="btn btn-secondary" type="button"><span
+            class="fas fa-home" aria-hidden="true" style="line-height: 48px"></span>&nbsp;&nbsp;搬运组扒源工具
+    </button>
+    <button class="btn btn-secondary" type="button" onclick="window.open('http://www.mrdvh.info')"><span
+            class="fas fa-film" aria-hidden="true" style="line-height: 48px"></span>&nbsp;&nbsp;视频源网站
+    </button>
 </div>
 <div class="container theme-showcase layui-form" role="main" id="mainpage">
     <div class="card" style="width: 100%">
@@ -79,6 +83,12 @@
     <div class="card" id="mainQueue" v-if="downloadQueue && page=='download'" style="margin-top: 2%">
         <div class="card-title" style="background:#5a6268">
             <b style="font-size: 16px;color: white;padding-left:2%;line-height: 48px;height: 48px;">扒源任务列表</b>
+            <span class="float-right" style="line-height: 48px;margin-right: 1%">
+                <button class="btn btn-secondary" type="button" v-on:click="clearcompleted"><span
+                        class="fas fa-trash"
+                        aria-hidden="true"></span> 清空已完成
+                </button>
+            </span>
         </div>
         <div class="card-body">
             <ul class="list-group">
@@ -285,7 +295,10 @@
             },
             clearcompleted: function (event) {
                 $.get("{{ url_for('removeFinished') }}", function (data) {
-                    console.log(data)
+                    if (data == "OK") {
+                        toastr.success("已清空所有已完成的任务")
+                        vm.refresh()
+                    }
                 });
             },
             shutdown: function (event) {
@@ -317,9 +330,9 @@
                     videoPaths: vm.videoPaths,
                     videoNames: vm.videoNames
                 }, function (data) {
-                    console.log(data)
+                    console.log(data);
                     for (item in vm.added) {
-                        console.log(vm.added[item])
+                        console.log(vm.added[item]);
                         toastr.success("扒源任务添加成功")
                     }
                     vm.added = []
@@ -330,8 +343,8 @@
             },
             deleteQueue: function (id) {
                 console.log(id)
-                var videoName = vm.getDownloadByID(id).canon
-                console.log(videoName)
+                var videoName = vm.getDownloadByID(id).canon;
+                console.log(videoName);
                 $.get("/youtube/remove/" + id, function (data) {
                     if (data == "OK") {
                         toastr.success("已删除扒源任务")
@@ -345,6 +358,7 @@
                 if (targetURL) {
                     $.get("/youtube/retry/" + id, function (data) {
                         if (data == "OK") {
+                            toastr.success("任务已开始重试")
                             vm.refresh()
                         }
                     });
@@ -356,7 +370,7 @@
                 if (!theVideo) {
                     theVideo = vm.getFolderByID(id)
                 }
-                vm.video = "/youtube/video/play/" + theVideo.filename
+                vm.video = "/youtube/video/play/" + theVideo.filename;
                 vm.page = "video"
             },
             formatBytes: function (bytes, decimals) {
@@ -377,7 +391,7 @@
                 $.post("{{ url_for('getFolder') }}", {
                     folderName: folderName
                 }, function (data) {
-                    var folderData = JSON.parse(data)
+                    var folderData = JSON.parse(data);
                     layui.config({
                         base: './'
                     }).extend({
