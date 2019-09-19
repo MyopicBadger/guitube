@@ -422,31 +422,28 @@ def videoCurrentPercent():
     return str(currentDownloadPercent)
 
 
-# 迭代生成目录树，用dict保存
-def createDict(path, root):
-    pathList = os.listdir(path)
-    for i, item in enumerate(pathList):
-        if isDir(getJoinPath(path, item)):
-            path = getJoinPath(path, item)
-            folder = {'name': item, 'children': []}
-            root.append(folder)
-            createDict(path, folder['children'])
-            path = '\\'.join(path.split('\\')[:-1])
+jsonStr = ''
 
 
-# 合并路径和目录，返回完整路径
-def getJoinPath(path, item):
-    return os.path.join(path, item)
+def fun(id, path):
+    global jsonStr
+    for i, fn in enumerate(glob.glob(path + os.sep + '*')):
+        if os.path.isdir(fn):
+            jsonStr += '{"id":"' + str(id) + '","name":"' + os.path.basename(fn) + '","children":['
+            id += 1
+            for j, li in enumerate(glob.glob(fn + os.sep + '*')):
+                if os.path.isdir(li):
+                    jsonStr += '{"id":"' + str(id) + '","name":"' + os.path.basename(li) + '","children":['
+                    id += 1
+                    fun(id, li)
+                    jsonStr += "]}"
+                    if j < len(glob.glob(fn + os.sep + '*')) - 1:
+                        jsonStr += ","
+            jsonStr += "]}"
+            if i < len(glob.glob(path + os.sep + '*')) - 1:
+                jsonStr += ","
 
 
-# 判断是否为目录
-def isDir(path):
-    if os.path.isdir(path):
-        return True
-    return False
-
-
-# 清空空值的字段
 def clean_empty(d):
     if not isinstance(d, (dict, list)):
         return d
@@ -458,10 +455,19 @@ def clean_empty(d):
 @app.route("/youtube/getfolder", methods=["POST"])
 def getFolder():
     if request.method == "POST":
+        global folderQueue, jsonStr
         folderName = request.form["folderName"]
-        root = []
-        createDict(folderName, root)
-        return jsonify(clean_empty(root))
+        id = 0
+        jsonStr = '['
+        fun(id, folderName)
+        jsonStr += "]"
+        jsonStr = jsonStr.replace('},]', '}]')
+        jsonStr = jsonStr.replace('\n', '').replace('\n', '')
+        jsonStr = jsonStr.replace('\r', '').replace('\r', '')
+        jsonStr = jsonStr.replace("\t", "").strip()
+        dictMap = json.loads(jsonStr)
+        dictMap = clean_empty(dictMap)
+        return jsonify(dictMap)
 
 
 @app.route("/youtube/getfolder1", methods=["POST"])
