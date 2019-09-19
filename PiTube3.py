@@ -202,7 +202,6 @@ class MyHook:
         global downloadQueue
         for url in downloadQueue.keys():
             if str(downloadQueue[url]["id"]) == self.tid:
-
                 if d["status"] == "finished":
                     print("Done downloading, now converting ...")
                     os.utime(d.get("filename", ""))
@@ -213,7 +212,7 @@ class MyHook:
                     )
                     downloadQueue[url]["filename"] = d.get("filename", "?")
                     downloadQueue[url]["tbytes"] = d.get(
-                        "total_bytes", d.get("downloaded_bytes", 0)
+                        "_total_bytes_str", d.get("downloaded_bytes", 0)
                     )
                     downloadQueue[url]["dbytes"] = d.get("downloaded_bytes", 0)
                     downloadQueue[url]["time"] = d.get("elapsed", "?")

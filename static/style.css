@@ -1,9 +1,0 @@
-.video{color: blue}
-.audio{color: red}
-.subtitle{display: none}
-ul.series {
-  columns: 3;
-  -webkit-columns: 3;
-  -moz-columns: 3;
-}
-.right{float: right}
