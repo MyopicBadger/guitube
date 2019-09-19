@@ -93,6 +93,49 @@
             </el-button>
         </div>
         <div class="item">
+            <el-table :data="downloadQueue" height="400" style="width: 100%">
+                <el-table-column type="expand">
+                    <template slot-scope="props">
+                        <el-form label-position="left" inline class="demo-table-expand">
+                            <el-form-item label="文件名称">
+                                <span>{{ props.row.name }}</span>
+                            </el-form-item>
+                            <el-form-item label="总大小">
+                                <span>{{ props.row.total }}</span>
+                            </el-form-item>
+                            <el-form-item label="下载速度">
+                                <span>{{ props.row.speed }}</span>
+                            </el-form-item>
+                            <el-form-item label="剩余时间">
+                                <span>{{ props.row.eta }}</span>
+                            </el-form-item>
+                            <el-form-item label="错误信息" style='width:100%' v-if='false'>
+                                <span>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</span>
+                            </el-form-item>
+                            <el-form-item label="进度" style='width:100%'>
+                                <el-progress style='width:500px;line-height: 40px' :text-inside="true"
+                                             :stroke-width="18" :percentage="props.row.percent"></el-progress>
+                            </el-form-item>
+                        </el-form>
+                    </template>
+                </el-table-column>
+                <el-table-column type="index" :index="indexMethod">
+                </el-table-column>
+                <el-table-column label="url" prop="url">
+                </el-table-column>
+                <el-table-column label="任务状态" prop="status">
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button size="mini" @click="handleEdit(scope.$index, scope.row)">重试</el-button>
+                        <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </div>
+
+        <div class="item">
             <ul class="list-group">
                 <template v-for="item in downloadQueue">
                     <!-- ERROR -->
@@ -398,6 +441,8 @@
             },
             handleItemChange(value) {
                 console.log(value);
+            }, indexMethod(index) {
+                return index + 1;
             }
         },
         delimiters: ['[[', ']]'],
