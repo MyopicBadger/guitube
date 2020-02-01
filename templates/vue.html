@@ -114,7 +114,7 @@
                     </li>
                     <!-- COMPLETED -->
                     <li class="list-group-item list-group-item-success" v-else-if="item.status == 'completed'">
-                        [[safeName(item.url)]]
+                        [[safeName(item)]]
                         <span class="float-right">
                             <a class="btn btn-secondary" href="#" v-on:click='playQueue(item.id)' v-if="item.playable">
                                 <span class="fas fa-play" aria-hidden="true"></span>&nbsp;
@@ -205,7 +205,7 @@
         var vm = new Vue({
             el: '#mainpage',
             data: {
-                downloadQueue: {},
+                downloadQueue: [],
                 folderView: {},
                 inputurl: "",
                 added: [],
@@ -226,13 +226,13 @@
                         return false
                     }
                 },
-                safeName: function (url) {
-                    if (vm.downloadQueue[url].canon) {
-                        return vm.downloadQueue[url].canon
-                    } else if (vm.downloadQueue[url].filename) {
-                        return vm.downloadQueue[url].filename
+                safeName: function (target) {
+                    if (target.canon) {
+                        return target.canon
+                    } else if (target.filename) {
+                        return target.filename
                     } else {
-                        return vm.downloadQueue[url].url
+                        return target.url
                     }
                 },
                 getDownloadByID: function (id) {
@@ -252,6 +252,30 @@
                 refresh: function (event) {
                     $.get("{{ url_for('videoJSONQueue') }}", function (data) {
                         vm.downloadQueue = data
+                        vm.downloadQueue.sort(function(a, b) {
+                            function compare(a, b) {
+                                if (a < b) {
+                                    return -1;
+                                } else if(a > b) {
+                                    return 1;
+                                } else {
+                                    return 0;
+                                }
+                            }
+                            if (a.status == "downloading") {
+                                return -1
+                            } else if (b.status == "downloading") {
+                                return 1;
+                            } else if (a.status == b.status) {
+                                if (a.canon) {
+                                    return compare(a.canon, b.canon);
+                                } else if (a.filename) {
+                                    return compare(a.filename, b.filename);
+                                } else {
+                                    return compare(a.url, b.url);
+                                }
+                            }
+                        })
                         var length = 0
                         var runningPercent = 0
                         for (item in data) {
