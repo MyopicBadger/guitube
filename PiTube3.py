@@ -173,7 +173,7 @@ def dumbSave():
 
 @app.route("/")
 def rootRedirect():
-    return redirect(url_for("mainPageFunction"))
+    return redirect(url_for("videoList"))
 
 
 def executeCommand(command):
@@ -413,15 +413,26 @@ def serveVideo(filename):
                 return Response(g, direct_passthrough=True)
 
 
+def rebuildQueue(dlList):
+    lQueue = {}
+    for record in dlList:
+        try:
+            lQueue[record["url"]] = record
+        except:
+            print(record)
+    return lQueue
+
 @app.route("/youtube/queue.json")
 def videoJSONQueue():
     global downloadQueue
+    queueList = []
     # Manually stringify the error object if there is one,
     # because apparently jsonify can't do it automatically
     for url in downloadQueue.keys():
         if downloadQueue[url]["status"] == "error":
             downloadQueue[url]["error"] = str(downloadQueue[url]["error"])
-    return jsonify(dict(downloadQueue))
+        queueList.append(downloadQueue[url])
+    return jsonify(queueList)
 
 
 @app.route("/youtube/percent")
